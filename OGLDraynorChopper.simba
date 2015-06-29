@@ -1,0 +1,349 @@
+program OGLDraynorChopper;
+{$i ogLib\lib\core\core.simba}
+
+{ This script requires ogLib. Learn how to set it up correctly here:
+  https://villavu.com/forum/showthread.php?t=112486
+
+  Make sure to set your game window to 'Resizable' and your interface to the
+  RuneScape 3 default.
+
+  Change player model IDs at lines 18 and 19. You can get the model IDs by using
+  the ogLib debug mode. (check aforementioned thread for more info)
+
+  If you prefer a different screen size, change it at lines 24 and 25. }
+
+{ const Player Constants;
+  Description: Constants for the player model. Change these to match your model. }
+const
+  MODEL_IDLE_ID = 4008865570;
+  MODEL_CHOPPING_ID = 3921387778;
+
+{ const Screen Constants;
+  Description: Constants for the screen. Change these to your own preference. }
+const
+  WIDTH = 1440;
+  HEIGHT = 900;
+
+{ const Misc Constants;
+  Description: Miscellaneous constants for the script. }
+const
+  GLX_DEBUG = 'models'; // options: none, models, textures, fonts
+  VERSION = '1.1.2';
+
+{ const Object Model Constants:
+  Description: Constants for various object models. Shouldn't be changed. }
+const
+  BANKER_MODEL_IDS : TCardinalArray = [1828922260];
+  WILLOW_MODEL_IDS : TCardinalArray = [2741093185, 3438012135, 135155099];
+  BIRDS_NEST_IDS : TCardinalArray = [3295357347, 2974258964, 1860798043];
+  MYSTERIOUS_METEORITE_IDS : TCardinalArray = [1905798070, 3856085471];
+
+{ const Object Texture Constants:
+  Description: Constants for various object textures. Shouldn't be changed. }
+const
+  MINIMAP_FLAG_ID = 1275;
+  BANK_ICON_ID = 45052;
+  WILLOW_LOGS_ID = 116280;
+  WILLOW_LOGS_CID = 2235918;
+  HATCHET_IDS : TCardinalArray = [30855, 41565, 44625, 55335]; // steel, mithril, adamant, rune
+  HATCHET_CIDS : TCardinalArray = [197121, 394502, 592135, 526860]; // steel, mithril, adamant, rune
+  SKILL_SELECTION_BOX_ID = 9900;
+  METEORITE_CONTINUE_BOX_ID = 91275;
+
+var
+  clientCenter: TPoint;
+  willowModels, nestModels, meteoriteModels: glModelArray;
+  canChopTree, canPickupMeteorite, canPickupNest, canWalk, canOpenBank,
+    canDeposit, canPrintProgress, canGetExperience: countDown = [0];
+  willowsCut, totalExperience: integer = 0;
+  startTime: integer;
+
+function getExperience(): integer;
+var
+  funcBounds: TBox;
+  funcExpString: string;
+  funcPlusPos: integer;
+  funcXpPos: integer;
+begin
+  funcBounds := [clientCenter.x - 100, 0, clientCenter.x + 100, 50];
+  funcExpString := ogl.getChars(funcBounds).toString();
+
+  funcPlusPos := pos('+', funcExpString);
+  funcXpPos := pos('xp', funcExpString);
+
+  if (funcPlusPos <> 0) and (funcXpPos <> 0) then
+  begin
+    result := copy(funcExpString, funcPlusPos + 1, funcXpPos - funcPlusPos - 2).parseInt();
+    canGetExperience.setTime(2000);
+  end
+end;
+
+procedure printProgress();
+var
+  elapsedTime: integer;
+  hours: double;
+  minutes: double;
+begin
+  elapsedTime := getSystemTime() - startTime;
+  hours := elapsedTime / 3600000;
+  minutes := floor(elapsedTime / 60000) mod 60;
+
+  writeln('Running for: ', floor(hours), 'h ', minutes, 'm');
+  writeln('Willows cut: ', willowsCut);
+  writeln('Willows per hour: ', floor(willowsCut / hours));
+  writeln('Experience earned: ', totalExperience);
+  writeln('Experience per hour: ', floor(totalExperience / hours));
+  writeln('=========================================');
+
+  canPrintProgress.setTime(15000);
+end;
+
+function tMouse.clickAction(funcClickPoint: TPoint; funcAction: string): boolean
+var
+  funcTimeout: countDown;
+  funcTooltip: string;
+begin
+  moveMouse(funcClickPoint.x, funcClickPoint.y);
+
+  funcTimeout.setTime(1000);
+  repeat
+    funcTooltip := mouse.getTooltip()
+  until (funcTooltip <> '') or (funcTimeout.isFinished());
+
+  if (funcTooltip <> '') then
+  begin
+    if (pos(funcAction, funcTooltip) <> 0) then
+    begin
+      mouse.click(funcClickPoint);
+      result := true;
+    end
+    else
+      result := mouse.rightClickOption(funcClickPoint, funcAction);
+
+    exit(result);
+  end;
+
+  exit(false);
+end;
+
+procedure rotateCamera;
+var
+  funcIndex: integer;
+begin
+  for funcIndex := 0 to random(4) do
+  begin
+    minimap.setDegrees(random(0, 360));
+    wait(random(120));
+  end;
+
+  if (random(2) = 0) then
+     mainScreen.setVerticalDegrees(69);
+
+  minimap.setDegrees(random(332, 353));
+end;
+
+procedure twiddleThumbs;
+begin
+  case Random(233) of
+    1: rotateCamera();
+  end;
+end;
+
+function isChopping: boolean;
+begin
+  result := not ogl.getModels(MODEL_CHOPPING_ID).isEmpty();
+end;
+
+function checkTrees: boolean;
+begin
+  willowModels := ogl.getModels(WILLOW_MODEL_IDS);
+  result := not willowModels.isEmpty();
+end;
+
+procedure chopTree;
+var
+  funcClickPoint: TPoint;
+begin
+  funcClickPoint := clientCenter.closest(willowModels)[0].randomizePointEllipse(55);
+  mouse.click(funcClickPoint);
+  canChopTree.setTime(random(2500, 4000));
+end;
+
+function checkMinimapFlag: boolean;
+var
+  funcFlagTexture: glTextureArray;
+begin
+  funcFlagTexture := ogl.getTextures(MINIMAP_FLAG_ID);
+  if (not funcFlagTexture.isEmpty()) then
+    result := funcFlagTexture[0].distanceFrom(minimap.getPlayer()) > random(12, 19)
+  else
+    result := False;
+end;
+
+procedure walkToWillows;
+begin
+  mouse.click(minimap.getScreenPosition(minimap.getLocalPosition()
+    .adjustPosition(random(-10, -6), random(5, 13))), 1);
+  canWalk.setTime(random(5000, 10000));
+end;
+
+procedure walkToBank;
+var
+  funcClickPoint: TPoint;
+begin
+  funcClickPoint := clientCenter.closest(ogl.getTextures(BANK_ICON_ID))[0]
+    .adjustPosition(random(-10, -2), random(10));
+  mouse.click(funcClickPoint);
+  canWalk.setTime(random(5000, 10000));
+end;
+
+function isAtBank: boolean;
+begin
+  result := ogl.getTextures(BANK_ICON_ID)[0].distanceFrom(minimap.getPlayer()) < random(38, 41);
+end;
+
+function isBankerVisible: boolean;
+begin
+  result := not ogl.getModels(BANKER_MODEL_IDS).getVisible().isEmpty();
+end;
+
+procedure openBank;
+var
+  funcClickPoint: TPoint;
+begin
+  funcClickPoint := clientCenter.closest(ogl.getModels(BANKER_MODEL_IDS))[0]
+    .randomizePointEllipse(13);
+  mouse.click(funcClickPoint);
+  canOpenBank.setTime(random(6000, 7500));
+end;
+
+procedure bankInventory;
+begin
+  wait(random(550, 790));
+
+  if (canPrintProgress.isFinished()) then
+  begin
+    willowsCut := willowsCut + inventory.getItems(WILLOW_LOGS_ID).indexes() - 1;
+    printProgress();
+  end;
+
+  bank.clickDepositCarriedItems();
+
+  canWalk.setTime(random(170, 330));
+  canDeposit.setTime(2000);
+end;
+
+function checkMeteorites: boolean;
+begin
+  meteoriteModels := ogl.getModels(MYSTERIOUS_METEORITE_IDS);
+  result := not meteoriteModels.isEmpty();
+end;
+
+procedure pickupMeteorite();
+var
+  funcTextures: glTextureArray;
+  funcClickPoint: TPoint;
+  funcTimeout: countDown;
+begin
+  wait(random(2500,  3000));
+  meteoriteModels := ogl.getModels(MYSTERIOUS_METEORITE_IDS); // the model moves so we need to get the updated location
+  funcClickPoint := clientCenter.closest(meteoriteModels)[0]
+    .randomizePointEllipse(13);
+
+  if (not ogl.getModels(MYSTERIOUS_METEORITE_IDS[0]).isEmpty()) then // take meteorite
+    mouse.clickAction(funcClickPoint, 'Take')
+  else // interact meteorite
+  begin
+    mouse.clickAction(funcClickPoint, 'Interact');
+
+    funcTimeout.setTime(random(7000, 9000));
+    repeat
+      wait(250);
+      funcTextures := ogl.getTextures(SKILL_SELECTION_BOX_ID);
+    until (not funcTextures.isEmpty()) or (funcTimeout.isFinished());
+
+    if (not funcTextures.isEmpty()) then
+    begin
+      funcClickPoint := clientCenter.closest(funcTextures)[0].randomizePointEllipse(7);
+      mouse.click(funcClickPoint);
+      wait(random(230, 330));
+      funcClickPoint := clientCenter.closest(ogl.getTextures(METEORITE_CONTINUE_BOX_ID))[0]
+        .randomizePointEllipse(7);
+      mouse.click(funcClickPoint);
+    end;
+  end;
+
+  canPickupMeteorite.setTime(random(180000, 190000));
+  canChopTree.setTime(random(4000, 6500));
+end;
+
+function checkNests: boolean;
+begin
+  nestModels := ogl.getModels(BIRDS_NEST_IDS);
+  result := not nestModels.isEmpty();
+end;
+
+procedure pickupNest();
+var
+  funcClickPoint: TPoint;
+begin
+  funcClickPoint := clientCenter.closest(nestModels)[0].randomizePointEllipse(8);
+  mouse.rightClickOption(funcClickPoint, 'Take');
+  canPickupNest.setTime(random(2000, 2500));
+  canChopTree.setTime(random(2000, 2500));
+end;
+
+procedure mainLoop;
+var
+  funcReaction: procedure() = @twiddleThumbs;
+begin
+  if (canGetExperience.isFinished()) then
+    totalExperience := totalExperience + getExperience();
+
+  if (isAtBank()) then
+  begin
+    if (inventory.isFull()) then
+    begin
+      if (bank.hasBank() and canDeposit.isFinished()) then
+        funcReaction := @bankInventory
+      else if (canOpenBank.isFinished()) then
+        funcReaction := @openBank
+    end
+    else if (canWalk.isFinished()) then
+      funcReaction := @walkToWillows
+  end
+  else
+  begin
+    if (not inventory.isFull()) then
+    begin
+      if (checkMeteorites() and canPickupMeteorite.isFinished()) then
+        funcReaction := @pickupMeteorite
+      else if (checkNests() and canPickupNest.isFinished()) then
+        funcReaction := @pickupNest
+      else if (not isChopping())
+        and (checkTrees())
+        and (not checkMinimapFlag())
+        and (canChopTree.isFinished()) then
+        funcReaction := @chopTree
+    end
+    else if (canWalk.isFinished()) then
+      funcReaction := @walkToBank
+  end;
+
+  funcReaction();
+end;
+
+begin
+  ogl.setup(WIDTH, HEIGHT);
+  clientCenter := ogl.getClientMidPoint();
+  startTime := getSystemTime();
+  ogl.setDebugMode(GLX_DEBUG);
+
+  writeln('[OGL] Draynor Chopper v', VERSION, ' by ChaosEnergy');
+  writeln('=========================================');
+
+  repeat
+    mainLoop;
+    wait(random(220, 670));
+  until false;
+end.
