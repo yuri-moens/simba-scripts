@@ -15,8 +15,8 @@ program OGLDraynorChopper;
 { const Player Constants;
   Description: Constants for the player model. Change these to match your model. }
 const
-  MODEL_IDLE_ID = 4008865570;
-  MODEL_CHOPPING_ID = 3921387778;
+  MODEL_IDLE_ID = 0;
+  MODEL_CHOPPING_ID = 0;
 
 { const Screen Constants;
   Description: Constants for the screen. Change these to your own preference. }
@@ -27,8 +27,8 @@ const
 { const Misc Constants;
   Description: Miscellaneous constants for the script. }
 const
-  GLX_DEBUG = 'models'; // options: none, models, textures, fonts
-  VERSION = '1.2.0';
+  GLX_DEBUG = 'none'; // options: none, models, textures, fonts
+  VERSION = '1.2.1';
 
 { const Object Model Constants:
   Description: Constants for various object models. Shouldn't be changed. }
@@ -44,9 +44,6 @@ const
   MINIMAP_FLAG_ID = 1275;
   BANK_ICON_ID = 45052;
   WILLOW_LOGS_ID = 116280;
-  WILLOW_LOGS_CID = 2235918;
-  HATCHET_IDS : TCardinalArray = [30855, 41565, 44625, 55335]; // steel, mithril, adamant, rune
-  HATCHET_CIDS : TCardinalArray = [197121, 394502, 592135, 526860]; // steel, mithril, adamant, rune
   SKILL_SELECTION_BOX_ID = 9900;
   METEORITE_CONTINUE_BOX_ID = 91275;
 

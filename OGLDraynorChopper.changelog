@@ -1,3 +1,10 @@
+1.2.1
+=====
+  - Removed unnecessary constants.
+  - Changed default GLX_DEBUG to 'none'.
+  - Changed bank wait timer.
+  - When an exception is encountered the script will now try to log out.
+
 1.2.0
 =====
 
