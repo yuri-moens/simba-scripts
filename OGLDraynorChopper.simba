@@ -28,7 +28,7 @@ const
   Description: Miscellaneous constants for the script. }
 const
   GLX_DEBUG = 'models'; // options: none, models, textures, fonts
-  VERSION = '1.1.2';
+  VERSION = '1.2.0';
 
 { const Object Model Constants:
   Description: Constants for various object models. Shouldn't be changed. }
@@ -57,6 +57,58 @@ var
     canDeposit, canPrintProgress, canGetExperience: countDown = [0];
   willowsCut, totalExperience: integer = 0;
   startTime: integer;
+
+function isUpToDate(): boolean;
+var
+  i: integer;
+  funcVersion: string;
+  funcRemoteVersionNumbers, funcLocalVersionNumbers: TStringArray;
+begin
+  funcVersion := getPage('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLDraynorChopper.version');
+  funcRemoteVersionNumbers := explode('.', funcVersion);
+  funcLocalVersionNumbers := explode('.', VERSION);
+
+  for i := low(funcRemoteVersionNumbers) to high(funcRemoteVersionNumbers) do
+  begin
+    if (strToInt(funcRemoteVersionNumbers[i]) <> strToInt(funcLocalVersionNumbers[i])) then
+      exit(false);
+  end;
+
+  exit(true);
+end;
+
+procedure update()
+var
+  funcFile: integer;
+  funcScript, funcFileName: string;
+begin
+  funcScript := getPage('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLDraynorChopper.simba');
+
+  funcFileName := scriptPath + 'OGLDraynorChopper.simba';
+  funcFile := rewriteFile(funcFileName, true);
+
+  try
+    writeFileString(funcFile, funcScript)
+  except
+    writeln('Failed to write!');
+  end;
+
+  closeFile(funcFile);
+
+  funcFile := rewriteFile(scriptPath + 'DraynorChopperModels.txt', true);
+
+  try
+    writeFileString(funcfile, 'MODEL_IDLE_ID: ' + intToStr(MODEL_IDLE_ID) + ', MODEL_CHOPPING_ID: ' + intToStr(MODEL_CHOPPING_ID))
+  except
+    writeln('Failed to write!');
+  end;
+
+  closeFile(funcFile);
+
+  writeln('Script has been updated, please re-open this file and restart the script.');
+  writeln('Your model IDs have been saved in DraynorChopperModels.txt');
+  terminateScript();
+end;
 
 function getExperience(): integer;
 var
@@ -338,6 +390,9 @@ begin
   clientCenter := ogl.getClientMidPoint();
   startTime := getSystemTime();
   ogl.setDebugMode(GLX_DEBUG);
+
+  if (not isUpToDate()) then
+    update();
 
   writeln('[OGL] Draynor Chopper v', VERSION, ' by ChaosEnergy');
   writeln('=========================================');
