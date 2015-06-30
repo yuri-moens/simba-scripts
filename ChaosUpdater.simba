@@ -1,0 +1,35 @@
+program ChaosUpdater;
+
+const
+  SCRIPTS: array[0..0] of string = ['OGLDraynorChopper'];
+
+procedure update;
+var
+  funcFile, i: integer;
+  funcScript, funcVersion, funcScriptName, funcFileName: string;
+begin
+  for i := low(SCRIPTS) to high(SCRIPTS) do
+  begin
+    funcScriptName := SCRIPTS[i];
+    writeln('[', funcScriptName, '] Downloading... ');
+
+    funcVersion := getPage('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/' + funcScriptName + '.version');
+    funcScript := getPage('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/' + funcScriptName + '.simba');
+
+    funcFileName := scriptPath + funcScriptName + '.simba';
+    funcFile := rewriteFile(funcFileName, true);
+
+    try
+      writeFileString(funcFile, funcScript)
+    except
+      writeln('[', funcScriptName, '] Failed to write');
+    end;
+
+    closeFile(funcFile);
+    writeln('[', funcScriptName, '] Script updated to version ', funcVersion);
+  end;
+end;
+
+begin
+  update();
+end.
