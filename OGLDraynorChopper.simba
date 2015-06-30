@@ -342,6 +342,26 @@ begin
   canChopTree.setTime(random(2000, 2500));
 end;
 
+procedure logout()
+var
+  funcBounds: TBox;
+  funcTimeout: countDown;
+  funcTextures: glTextureArray;
+begin
+  funcBounds := [WIDTH - 10, 0, WIDTH, 10];
+  funcTimeout.setTime(5000);
+  writeln('Logging out...');
+
+  mouse.click(funcBounds);
+
+  repeat
+    funcTextures := ogl.getTextures(91275, 12483092);
+  until (not funcTextures.isEmpty()) or (funcTimeout.isFinished());
+
+  if (not funcTextures.isEmpty()) then
+    mouse.click(clientCenter.closest(funcTextures)[0].randomizePointEllipse(15));
+end;
+
 procedure mainLoop;
 var
   funcReaction: procedure() = @twiddleThumbs;
@@ -394,8 +414,14 @@ begin
   writeln('[OGL] Draynor Chopper v', VERSION, ' by ChaosEnergy');
   writeln('=========================================');
 
-  repeat
-    mainLoop;
-    wait(random(220, 670));
-  until false;
+  try
+    repeat
+      mainLoop;
+      wait(random(220, 670));
+    until false;
+  except
+    writeln('Oops! It appears I have crashed.');
+    logout();
+    terminateScript();
+  end;
 end.
