@@ -28,15 +28,17 @@ const
   Description: Miscellaneous constants for the script. }
 const
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '1.2.1';
+  VERSION = '1.2.2';
 
 { const Object Model Constants:
   Description: Constants for various object models. Shouldn't be changed. }
 const
-  BANKER_MODEL_IDS : TCardinalArray = [1828922260];
-  WILLOW_MODEL_IDS : TCardinalArray = [2741093185, 3438012135, 135155099];
-  BIRDS_NEST_IDS : TCardinalArray = [3295357347, 2974258964, 1860798043];
-  MYSTERIOUS_METEORITE_IDS : TCardinalArray = [1905798070, 3856085471];
+  BANKER_MODEL_IDS : tCardinalArray = [1828922260];
+  BANK_BOOTH_MODEL_IDS : tCardinalArray = [2697527608];
+  WILLOW_MODEL_IDS : tCardinalArray = [2741093185, 3438012135, 135155099];
+  TREE_STUMP_MODEL_ID : integer = 3525527804;
+  BIRDS_NEST_IDS : tCardinalArray = [3295357347, 2974258964, 1860798043];
+  MYSTERIOUS_METEORITE_IDS : tCardinalArray = [1905798070, 3856085471];
 
 { const Object Texture Constants:
   Description: Constants for various object textures. Shouldn't be changed. }
@@ -48,10 +50,10 @@ const
   METEORITE_CONTINUE_BOX_ID = 91275;
 
 var
-  clientCenter: TPoint;
+  clientCenter, lastTreePoint: tPoint;
   willowModels, nestModels, meteoriteModels: glModelArray;
   canChopTree, canPickupMeteorite, canPickupNest, canWalk, canOpenBank,
-    canDeposit, canPrintProgress, canGetExperience: countDown = [0];
+    canDeposit, canPrintProgress, canGetExperience: tCountDown = 0;
   willowsCut, totalExperience: integer = 0;
   startTime: integer;
 
@@ -109,7 +111,7 @@ end;
 
 function getExperience(): integer;
 var
-  funcBounds: TBox;
+  funcBounds: tBox;
   funcExpString: string;
   funcPlusPos: integer;
   funcXpPos: integer;
@@ -149,7 +151,7 @@ end;
 
 function tMouse.clickAction(funcClickPoint: TPoint; funcAction: string): boolean
 var
-  funcTimeout: countDown;
+  funcTimeout: tCountDown;
   funcTooltip: string;
 begin
   moveMouse(funcClickPoint.x, funcClickPoint.y);
@@ -193,14 +195,35 @@ end;
 
 procedure twiddleThumbs;
 begin
-  case Random(233) of
+  case Random(533) of
     1: rotateCamera();
   end;
 end;
 
+function isTreeCutDown: boolean;
+var
+  funcStumps : glModelArray;
+begin
+  funcStumps := ogl.getModels(TREE_STUMP_MODEL_ID);
+  if (funcStumps.isEmpty()) then
+    result := false
+  else
+    result := (lastTreePoint.closest(funcStumps)[0].distanceFrom(lastTreePoint) < 10);
+end;
+
 function isChopping: boolean;
 begin
-  result := not ogl.getModels(MODEL_CHOPPING_ID).isEmpty();
+  if (ogl.getModels(MODEL_CHOPPING_ID).isEmpty()) then
+    result := false
+  else
+  begin
+    canChopTree.setTime(0);
+
+    if (isTreeCutDown()) then
+      result := false
+    else
+      result := true;
+  end;
 end;
 
 function checkTrees: boolean;
@@ -214,8 +237,9 @@ var
   funcClickPoint: TPoint;
 begin
   funcClickPoint := clientCenter.closest(willowModels)[0].randomizePointEllipse(55);
+  lastTreePoint := funcClickPoint;
   mouse.click(funcClickPoint);
-  canChopTree.setTime(random(2500, 4000));
+  canChopTree.setTime(random(6000, 8000));
 end;
 
 function checkMinimapFlag: boolean;
@@ -224,7 +248,7 @@ var
 begin
   funcFlagTexture := ogl.getTextures(MINIMAP_FLAG_ID);
   if (not funcFlagTexture.isEmpty()) then
-    result := funcFlagTexture[0].distanceFrom(minimap.getPlayer()) > random(12, 19)
+    result := funcFlagTexture[0].distanceFrom(minimap.getPlayer()) > normalRandom(18, 24)
   else
     result := False;
 end;
@@ -232,23 +256,23 @@ end;
 procedure walkToWillows;
 begin
   mouse.click(minimap.getScreenPosition(minimap.getLocalPosition()
-    .adjustPosition(random(-10, -6), random(5, 13))), 1);
-  canWalk.setTime(random(5000, 10000));
+    .adjustPosition(normalRandom(-10, -6), normalRandom(6, 10))), 1);
+  canWalk.setTime(normalRandom(5000, 10000));
 end;
 
 procedure walkToBank;
 var
-  funcClickPoint: TPoint;
+  funcClickPoint: tPoint;
 begin
   funcClickPoint := clientCenter.closest(ogl.getTextures(BANK_ICON_ID))[0]
-    .adjustPosition(random(-10, -2), random(10));
+    .adjustPosition(normalRandom(-10, -2), normalRandom(0, 10));
   mouse.click(funcClickPoint);
-  canWalk.setTime(random(5000, 10000));
+  canWalk.setTime(normalRandom(5000, 10000));
 end;
 
 function isAtBank: boolean;
 begin
-  result := ogl.getTextures(BANK_ICON_ID)[0].distanceFrom(minimap.getPlayer()) < random(38, 41);
+  result := ogl.getTextures(BANK_ICON_ID)[0].distanceFrom(minimap.getPlayer()) < normalRandom(38, 41);
 end;
 
 function isBankerVisible: boolean;
@@ -258,17 +282,17 @@ end;
 
 procedure openBank;
 var
-  funcClickPoint: TPoint;
+  funcClickPoint: tPoint;
 begin
   funcClickPoint := clientCenter.closest(ogl.getModels(BANKER_MODEL_IDS))[0]
-    .randomizePointEllipse(13);
+    .closest(ogl.getModels(BANK_BOOTH_MODEL_IDS))[0].randomizePointEllipse(25);
   mouse.click(funcClickPoint);
-  canOpenBank.setTime(random(6000, 7500));
+  canOpenBank.setTime(normalRandom(6000, 7500));
 end;
 
 procedure bankInventory;
 begin
-  wait(random(550, 790));
+  wait(normalRandom(550, 790));
 
   if (canPrintProgress.isFinished()) then
   begin
@@ -278,7 +302,7 @@ begin
 
   bank.clickDepositCarriedItems();
 
-  canWalk.setTime(random(170, 330));
+  canWalk.setTime(normalRandom(170, 330));
   canDeposit.setTime(2000);
 end;
 
@@ -291,10 +315,10 @@ end;
 procedure pickupMeteorite();
 var
   funcTextures: glTextureArray;
-  funcClickPoint: TPoint;
-  funcTimeout: countDown;
+  funcClickPoint: tPoint;
+  funcTimeout: tCountDown;
 begin
-  wait(random(2500,  3000));
+  wait(normalRandom(2500,  3000));
   meteoriteModels := ogl.getModels(MYSTERIOUS_METEORITE_IDS); // the model moves so we need to get the updated location
   funcClickPoint := clientCenter.closest(meteoriteModels)[0]
     .randomizePointEllipse(13);
@@ -305,7 +329,7 @@ begin
   begin
     mouse.clickAction(funcClickPoint, 'Interact');
 
-    funcTimeout.setTime(random(7000, 9000));
+    funcTimeout.setTime(normalRandom(7000, 9000));
     repeat
       wait(250);
       funcTextures := ogl.getTextures(SKILL_SELECTION_BOX_ID);
@@ -315,15 +339,15 @@ begin
     begin
       funcClickPoint := clientCenter.closest(funcTextures)[0].randomizePointEllipse(7);
       mouse.click(funcClickPoint);
-      wait(random(230, 330));
+      wait(normalRandom(230, 330));
       funcClickPoint := clientCenter.closest(ogl.getTextures(METEORITE_CONTINUE_BOX_ID))[0]
         .randomizePointEllipse(7);
       mouse.click(funcClickPoint);
     end;
   end;
 
-  canPickupMeteorite.setTime(random(180000, 190000));
-  canChopTree.setTime(random(4000, 6500));
+  canPickupMeteorite.setTime(normalRandom(180000, 190000));
+  canChopTree.setTime(normalRandom(4000, 6500));
 end;
 
 function checkNests: boolean;
@@ -334,21 +358,20 @@ end;
 
 procedure pickupNest();
 var
-  funcClickPoint: TPoint;
+  funcClickPoint: tPoint;
 begin
   funcClickPoint := clientCenter.closest(nestModels)[0].randomizePointEllipse(8);
   mouse.rightClickOption(funcClickPoint, 'Take');
-  canPickupNest.setTime(random(2000, 2500));
-  canChopTree.setTime(random(2000, 2500));
+  canPickupNest.setTime(normalRandom(2000, 2500));
+  canChopTree.setTime(normalRandom(2000, 2500));
 end;
 
 procedure logout()
 var
-  funcBounds: TBox;
-  funcTimeout: countDown;
+  funcBounds: tBox = [WIDTH - 10, 0, WIDTH, 10];
+  funcTimeout: tCountDown;
   funcTextures: glTextureArray;
 begin
-  funcBounds := [WIDTH - 10, 0, WIDTH, 10];
   funcTimeout.setTime(5000);
   writeln('Logging out...');
 
@@ -385,10 +408,16 @@ begin
   begin
     if (not inventory.isFull()) then
     begin
-      if (checkMeteorites() and canPickupMeteorite.isFinished()) then
-        funcReaction := @pickupMeteorite
-      else if (checkNests() and canPickupNest.isFinished()) then
-        funcReaction := @pickupNest
+      if (checkMeteorites()) then
+      begin
+        if (canPickupMeteorite.isFinished()) then
+          funcReaction := @pickupMeteorite
+      end
+      else if (checkNests()) then
+      begin
+        if (canPickupNest.isFinished()) then
+          funcReaction := @pickupNest
+      end
       else if (not isChopping())
         and (checkTrees())
         and (not checkMinimapFlag())
@@ -417,7 +446,7 @@ begin
   try
     repeat
       mainLoop;
-      wait(random(220, 670));
+      wait(normalRandom(220, 670));
     until false;
   except
     writeln('Oops! It appears I have crashed.');

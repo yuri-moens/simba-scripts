@@ -1,3 +1,11 @@
+1.2.2
+=====
+  - Updated the countDown type to the new tCountDown.
+  - Antiban happens less often now.
+  - Optimized chopping: the script will now check if the tree has been cut down so we can continue even if the chopping animation is still happening.
+  - Changed all random numbers to normal random numbers.
+  - Slight banking optimization.
+
 1.2.1
 =====
   - Removed unnecessary constants.
