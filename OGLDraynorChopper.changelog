@@ -1,3 +1,7 @@
+1.2.4
+=====
+  - Fixed a bug where checkMinimapFlag() could crash the script. 
+
 1.2.3
 =====
   - Undo chopping optimization as it was causing far too many problems.

@@ -28,7 +28,7 @@ const
   Description: Miscellaneous constants for the script. }
 const
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '1.2.3';
+  VERSION = '1.2.4';
 
 { const Object Model Constants:
   Description: Constants for various object models. Shouldn't be changed. }
@@ -231,10 +231,14 @@ var
   funcFlagTexture: glTextureArray;
 begin
   funcFlagTexture := ogl.getTextures(MINIMAP_FLAG_ID);
-  if (not funcFlagTexture.isEmpty()) then
-    result := funcFlagTexture[0].distanceFrom(minimap.getPlayer()) > normalRandom(18, 24)
-  else
-    result := False;
+  try
+    if (not funcFlagTexture.isEmpty()) then
+      result := funcFlagTexture[0].distanceFrom(minimap.getPlayer()) > normalRandom(18, 24)
+    else
+      result := false;
+  except
+    result := false;
+  end;
 end;
 
 procedure walkToWillows;
