@@ -28,7 +28,7 @@ const
   Description: Miscellaneous constants for the script. }
 const
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '1.2.2';
+  VERSION = '1.2.3';
 
 { const Object Model Constants:
   Description: Constants for various object models. Shouldn't be changed. }
@@ -36,7 +36,6 @@ const
   BANKER_MODEL_IDS : tCardinalArray = [1828922260];
   BANK_BOOTH_MODEL_IDS : tCardinalArray = [2697527608];
   WILLOW_MODEL_IDS : tCardinalArray = [2741093185, 3438012135, 135155099];
-  TREE_STUMP_MODEL_ID : integer = 3525527804;
   BIRDS_NEST_IDS : tCardinalArray = [3295357347, 2974258964, 1860798043];
   MYSTERIOUS_METEORITE_IDS : tCardinalArray = [1905798070, 3856085471];
 
@@ -200,17 +199,6 @@ begin
   end;
 end;
 
-function isTreeCutDown: boolean;
-var
-  funcStumps : glModelArray;
-begin
-  funcStumps := ogl.getModels(TREE_STUMP_MODEL_ID);
-  if (funcStumps.isEmpty()) then
-    result := false
-  else
-    result := (lastTreePoint.closest(funcStumps)[0].distanceFrom(lastTreePoint) < 10);
-end;
-
 function isChopping: boolean;
 begin
   if (ogl.getModels(MODEL_CHOPPING_ID).isEmpty()) then
@@ -218,11 +206,7 @@ begin
   else
   begin
     canChopTree.setTime(0);
-
-    if (isTreeCutDown()) then
-      result := false
-    else
-      result := true;
+    result := true;
   end;
 end;
 
@@ -239,7 +223,7 @@ begin
   funcClickPoint := clientCenter.closest(willowModels)[0].randomizePointEllipse(55);
   lastTreePoint := funcClickPoint;
   mouse.click(funcClickPoint);
-  canChopTree.setTime(random(6000, 8000));
+  canChopTree.setTime(random(4000, 6000));
 end;
 
 function checkMinimapFlag: boolean;
@@ -408,16 +392,10 @@ begin
   begin
     if (not inventory.isFull()) then
     begin
-      if (checkMeteorites()) then
-      begin
-        if (canPickupMeteorite.isFinished()) then
-          funcReaction := @pickupMeteorite
-      end
-      else if (checkNests()) then
-      begin
-        if (canPickupNest.isFinished()) then
-          funcReaction := @pickupNest
-      end
+      if (checkMeteorites()) and (canPickupMeteorite.isFinished()) then
+        funcReaction := @pickupMeteorite
+      else if (checkNests()) and (canPickupNest.isFinished()) then
+        funcReaction := @pickupNest
       else if (not isChopping())
         and (checkTrees())
         and (not checkMinimapFlag())
