@@ -1,0 +1,397 @@
+program OGLBonfire;
+{$i ogLib\lib\core\core.simba}
+
+{ This script requires ogLib. Learn how to set it up correctly here:
+  https://villavu.com/forum/showthread.php?t=112486
+
+  Make sure to set your game window to 'Resizable' and your interface to the
+  RuneScape 3 default. Also turn on 'Show XP tracker' at the Interface settings.
+
+  Change player model IDs at line 39. There are two different animations so you
+  need two integers in the array. You can get the model IDs by using
+  the ogLib debug mode. (check aforementioned thread for more info)
+
+  Change your prefered log type to burn at line 38.
+
+  If you prefer a different screen size, change it at lines 52 and 53. }
+
+type
+  tLog = record
+    id, cid, bankCid: integer;
+  end;
+
+{ const Log Constants;
+  Description: Constants for the different types of logs. }
+const
+  NORMAL_LOG : tLog = [116280, 3089172, 3221015];
+  OAK_lOG : tLog = [116280, 4141084, 4338207];
+  WILLOW_LOG : tLog = [116280, 2301967, 2433553];
+  MAPLE_LOG : tLog = [116280, 3022601, 3219980];
+  YEW_LOG : tLog = [116280, 2431752, 2694666];
+  MAGIC_LOG : tLog = [122910, 3947820, 4145199];
+  ELDER_LOG : tLog = [118575, 3616291, 3747877];
+  ALL_LOGS : tCardinalArray = [116280, 122910, 118575];
+
+{ const Player Constants;
+  Description: Constants that should be changed based on your player or preference.}
+const
+  LOG_TYPE : tLog = MAPLE_LOG;
+  PLAYER_BURNING : tCardinalArray = [0, 0];
+
+{ Script Constants;
+  Description: Constants specific to thie script. }
+const
+  BANK_MODELS : tCardinalArray = [1828922260, 2878626002, 2083337462, 2697527608, 915100373, 3489743445, 4243090208, 2783808500];
+  FIRES : tCardinalArray = [2057907316, 653711928];
+  FIRE_SPIRIT = 1920637384;
+  XP_TEXTURE = 48705;
+
+{ const Misc Constants;
+  Description: Miscellaneous constants for the script. }
+const
+  WIDTH = 1440;
+  HEIGHT = 900;
+  GLX_DEBUG = 'none'; // options: none, models, textures, fonts
+  VERSION = '1.0.0';
+
+var
+  clientCenter: tPoint;
+  startTime, startExperience, logsBurnt: integer;
+  canOpenBank, canAddToFire, canClickFireSpirit, canPrintProgress: tCountDown;
+
+procedure tBank.close();
+var
+  funcTimeout: tCountDown;
+begin
+  funcTimeout.setTime(2000);
+  repeat
+    typeByte(VK_ESCAPE);
+    wait(normalRandom(400, 600));
+  until (not bank.hasBank()) or (funcTimeout.isFinished());
+
+  if (bank.hasBank()) then
+    mouse.click(clientCenter.closest(ogl.getTextures(16320, 7086623))[0].randomizePointEllipse(7));
+end;
+
+{ This function was taken from ogLib and edited to ignore the 1px texture in the inventory.
+  https://github.com/ObscuritySRL/ogLib/blob/master/lib/interfaces/inventory.simba}
+function tInventory.getRealItems(funcID,funcColourID:int32):glTextureArray;overload;
+var
+  funcContinue:boolean;
+  funcPointer:pointer;
+  funcPointerIndex,
+    funcPointerSize,
+    funcResultIndex:uInt32=0;
+  funcTexture: glTexture;
+begin
+  funcPointer:=glTextures(funcPointerSize);
+  {if funcPointerSize<1 then
+    exit();}
+  for funcPointerIndex to funcPointerSize-1 do
+    begin
+      if funcPointer^=88625 then
+        funcContinue:=true
+      else if funcContinue then
+        break;
+      funcPointer:=funcPointer+36;
+    end;
+  if funcPointerIndex=funcPointerSize then
+    exit();
+  setLength(result,funcPointerSize);
+  for funcPointerIndex to funcPointerSize-1 do
+    begin
+      if (funcPointer^=73440) and similarColors((funcPointer+4)^,1256246,oglColourTolerance) then
+        break
+      else if (funcPointer^=funcID) and similarColors((funcPointer+4)^,funcColourID,oglColourTolerance) then
+        begin
+          funcTexture := glTexture(funcPointer^);
+          if (funcTexture.x <> 1254) then
+          begin
+            result[funcResultIndex]:=glTexture(funcPointer^);
+            funcResultIndex:=funcResultIndex+1;
+          end;
+        end;
+      funcPointer:=funcPointer+36;
+    end;
+  setLength(result,funcResultIndex);
+  exit(result);
+end;
+
+function isUpToDate(): boolean;
+var
+  i: integer;
+  funcVersion: string;
+  funcRemoteVersionNumbers, funcLocalVersionNumbers: TStringArray;
+begin
+  funcVersion := getPage('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLBonfire.version');
+  funcRemoteVersionNumbers := explode('.', funcVersion);
+  funcLocalVersionNumbers := explode('.', VERSION);
+
+  for i := low(funcRemoteVersionNumbers) to high(funcRemoteVersionNumbers) do
+  begin
+    if (strToInt(funcRemoteVersionNumbers[i]) <> strToInt(funcLocalVersionNumbers[i])) then
+      exit(false);
+  end;
+
+  exit(true);
+end;
+
+procedure update()
+var
+  funcFile: integer;
+  funcScript, funcFileName: string;
+begin
+  funcScript := getPage('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLBonfire.simba');
+
+  funcFileName := scriptPath + 'OGLBonfire.simba';
+  funcFile := rewriteFile(funcFileName, true);
+
+  try
+    writeFileString(funcFile, funcScript)
+  except
+    writeln('Failed to write!');
+  end;
+
+  closeFile(funcFile);
+
+  funcFile := rewriteFile(scriptPath + 'BonfireModels.txt', true);
+
+  try
+    writeFileString(funcfile, 'PLAYER_BURNING: ' + PLAYER_BURNING)
+  except
+    writeln('Failed to write!');
+  end;
+
+  closeFile(funcFile);
+
+  writeln('Script has been updated, please re-open this file and restart the script.');
+  writeln('Your model IDs have been saved in BonfireModels.txt');
+  terminateScript();
+end;
+
+function getExperience(): integer;
+var
+  xpTexture: glTextureArray;
+  xpBox: tBox;
+begin
+  xpTexture := ogl.getTextures(XP_TEXTURE);
+  if (not xpTexture.isEmpty()) then
+  begin
+    xpBox := intToBox(xpTexture[0].bounds.x1 - 250, xpTexture[0].bounds.y1, xpTexture[0].bounds.x2, xpTexture[0].bounds.y2);
+    result := explode('+', ogl.getChars(xpBox).toString())[0].parseInt();
+  end;
+end;
+
+procedure printProgress();
+var
+  elapsedTime: integer;
+  hours: double;
+  minutes: double;
+  gainedExperience: integer;
+begin
+  elapsedTime := getSystemTime() - startTime;
+  hours := elapsedTime / 3600000;
+  minutes := floor(elapsedTime / 60000) mod 60;
+  gainedExperience := getExperience() - startExperience;
+
+  writeln('Running for: ', floor(hours), 'h ', minutes, 'm');
+  writeln('Logs burnt: ', logsBurnt);
+  writeln('Logs burnt per hour: ', floor(logsBurnt / hours));
+  writeln('Experience earned: ', gainedExperience);
+  writeln('Experience per hour: ', floor(gainedExperience / hours));
+  writeln('=========================================');
+
+  canPrintProgress.setTime(15000);
+end;
+
+procedure rotateCamera;
+var
+  funcIndex: integer;
+begin
+  for funcIndex := 0 to random(4) do
+  begin
+    minimap.setDegrees(random(0, 360));
+    wait(random(120));
+  end;
+
+  if (random(2) = 0) then
+     mainScreen.setVerticalDegrees(69);
+
+  minimap.setDegrees(random(332, 353));
+end;
+
+procedure twiddleThumbs;
+begin
+  case random(533) of
+    1: rotateCamera();
+  end;
+end;
+
+function shouldBank: boolean;
+begin
+  result := (inventory.getItems(LOG_TYPE.id, LOG_TYPE.cid).indexes() = 0);
+end;
+
+procedure openBank;
+begin
+  mouse.click(clientCenter.closest(ogl.getModels(BANK_MODELS))[0].randomizePointEllipse(25));
+  wait(normalRandom(920, 1480));
+  canOpenBank.setTime(normalRandom(3500, 5000));
+end;
+
+procedure withdrawItems;
+begin
+  if (inventory.getItemCount() <> 0) then
+    bank.clickDepositCarriedItems();
+
+  if (canPrintProgress.isFinished()) then
+    printProgress();
+
+  mouse.rightClickOption(clientCenter.closest(ogl.getTextures(LOG_TYPE.id, LOG_TYPE.bankCid))[0].randomizePointEllipse(25), 'Withdraw-All', normalRandom(250, 550));
+  logsBurnt := logsBurnt + 28;
+
+  wait(normalRandom(330, 590));
+  bank.close();
+  wait (normalRandom(300, 600));
+end;
+
+function isBurning: boolean;
+var
+  funcTimeout: tCountDown;
+begin
+  result := (not ogl.getModels(PLAYER_BURNING).isEmpty());
+end;
+
+function hasFire: boolean;
+var
+  funcFires: glModelArray;
+begin
+  funcFires := ogl.getModels(FIRES);
+  result := ((not funcFires.isEmpty()) and (clientCenter.distanceFrom(clientCenter.closest(funcFires)[0]) < 200));
+end;
+
+function tInventory.getRealItem(funcId, funcCid: integer): glTexture;
+var
+  funcTextures: glTextureArray;
+begin
+  funcTextures := ogl.getTextures(funcId, funcCid);
+  if (not funcTextures.isEmpty()) then
+    result := funcTextures[1];
+end;
+
+procedure addToFire;
+var
+  funcTimeout: tCountDown;
+begin
+  mouse.click(clientCenter.closest(inventory.getRealItems(LOG_TYPE.id, LOG_TYPE.cid))[0].randomizePointEllipse(15));
+
+  wait(normalRandom(400, 700));
+
+  funcTimeout.setTime(2000);
+  repeat
+    wait(300);
+  until (production.hasProduction()) or (funcTimeout.isFinished());
+
+  if (production.hasProduction()) then
+    production.setTool(2);
+
+  canAddToFire.setTime(4000);
+end;
+
+procedure startFire;
+var
+  funcTimeout: tCountDown;
+begin
+  mouse.rightClickOption(clientCenter.closest(inventory.getRealItems(LOG_TYPE.id, LOG_TYPE.cid))[0].randomizePointEllipse(15), 'Light', normalRandom(250, 550));
+  funcTimeout.setTime(5000);
+
+  repeat
+    wait(300);
+  until (hasFire()) or (funcTimeout.isFinished());
+end;
+
+function isFireSpirit: boolean;
+begin
+  result := (not ogl.getModels(FIRE_SPIRIT).isEmpty());
+end;
+
+procedure clickFireSpirit;
+var
+  funcClickPoint: tPoint;
+begin
+  funcClickPoint := clientCenter.closest(ogl.getModels(FIRE_SPIRIT))[0].randomizePointEllipse(8);
+  funcClickPoint := [funcClickPoint.x, (funcClickPoint.y + normalRandom(3, 6))];
+  mouse.rightClickOption(funcClickPoint, 'Collect', normalRandom(250, 550));
+
+  canClickFireSpirit.setTime(normalRandom(9000, 11000));
+  canAddToFire.setTime(normalRandom(2500, 3500));
+end;
+
+procedure logout()
+var
+  funcBounds: tBox = [WIDTH - 10, 0, WIDTH, 10];
+  funcTimeout: tCountDown;
+  funcTextures: glTextureArray;
+begin
+  funcTimeout.setTime(5000);
+  writeln('Logging out...');
+
+  mouse.click(funcBounds);
+
+  repeat
+    funcTextures := ogl.getTextures(91275, 12483092);
+  until (not funcTextures.isEmpty()) or (funcTimeout.isFinished());
+
+  if (not funcTextures.isEmpty()) then
+    mouse.click(clientCenter.closest(funcTextures)[0].randomizePointEllipse(15));
+end;
+
+procedure mainLoop
+var
+  funcReaction: procedure() = @twiddleThumbs;
+begin
+  if (shouldBank()) then
+  begin
+    if (not bank.hasBank()) and (canOpenBank.isFinished()) then
+      funcReaction := @openBank
+    else if (bank.hasBank()) and (not inventory.isFull()) then
+      funcReaction := @withdrawItems;
+  end
+  else
+  begin
+    if (not hasFire()) then
+      funcReaction := @startFire
+    else if (not isBurning()) and (canAddToFire.isFinished()) then
+      funcReaction := @addToFire
+    else if (isFireSpirit()) and (canClickFireSpirit.isFinished()) then
+      funcReaction := @clickFireSpirit;
+  end;
+
+  funcReaction();
+end;
+
+begin
+  ogl.setup(WIDTH, HEIGHT);
+  clientCenter := ogl.getClientMidPoint();
+  startTime := getSystemTime();
+  ogl.setDebugMode(GLX_DEBUG);
+
+  if (not isUpToDate()) then
+    update();
+
+  writeln('[OGL] Bonfire v', VERSION, ' by ChaosEnergy');
+  writeln('=========================================');
+
+  try
+    startExperience := getExperience();
+
+    repeat
+      mainLoop;
+      wait(normalRandom(220, 670));
+    until false;
+  except
+    writeln('Oops! It appears I have crashed.');
+    logout();
+    terminateScript();
+  end;
+end.

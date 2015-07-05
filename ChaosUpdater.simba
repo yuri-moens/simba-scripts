@@ -1,7 +1,7 @@
 program ChaosUpdater;
 
 const
-  SCRIPTS: array[0..0] of string = ['OGLDraynorChopper'];
+  SCRIPTS: array[0..1] of string = ['OGLDraynorChopper', 'OGLBonfire'];
 
 procedure update;
 var
