@@ -1,7 +1,11 @@
+1.0.3
+=====
+  - Optimized Fire Spirit clicking.
+
 1.0.2
 =====
   - Forgot to update version string.
-  
+
 1.0.1
 =====
   - Fixed a bug occuring when player model IDs were being saved.
