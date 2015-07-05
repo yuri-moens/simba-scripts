@@ -1,3 +1,7 @@
+1.0.1
+=====
+  - Fixed a bug occuring when player model IDs were being saved.
+
 1.0.0
 =====
   - Release

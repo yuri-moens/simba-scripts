@@ -157,7 +157,7 @@ begin
   funcFile := rewriteFile(scriptPath + 'BonfireModels.txt', true);
 
   try
-    writeFileString(funcfile, 'PLAYER_BURNING: ' + PLAYER_BURNING)
+    writeFileString(funcfile, 'PLAYER_BURNING: ' + intToStr(PLAYER_BURNING[0]) + ', ' + intToStr(PLAYER_BURNING[1]))
   except
     writeln('Failed to write!');
   end;
