@@ -1,0 +1,266 @@
+program OGLBarbeque;
+{$i ogLib\lib\core\core.simba}
+
+const
+  BARBEQUE_CHOPPING_TABLE: tCardinalArray = [3858309013, 3086665917];
+
+{ const Temperature Constants;
+  Description: Constants for the temperature. }
+const
+  EMPTY_GAUGE = 1178790;
+  ICE_CREAM = 45645;
+  COCKTAIL_TID = 63495;
+  COCKTAIL_CID = 725011;
+
+{ const Misc Constants;
+  Description: Miscellaneous constants for the script. }
+const
+  WIDTH = 1440;
+  HEIGHT = 900;
+  GLX_DEBUG: string = 'none';
+  VERSION: string = '1.0.0';
+  XP_TEXTURE = 48705;
+
+var
+  clientCenter: tPoint;
+  canCook, canPrintProgress, canDrinkCocktail: tCountDown;
+  startTime, startExperience, playerId: integer;
+
+{ Credits to Bly for the idea of the getPlayerId function. }
+function getPlayerId: integer;
+var
+  funcModels: glModelArray;
+  funcPlayerModelBox: tBox;
+  i: integer;
+begin
+  funcPlayerModelBox := intToBox(clientCenter.x - 60, clientCenter.y - 25, clientCenter.x + 40, clientCenter.y + 40);
+  funcModels := ogl.getModels(funcPlayerModelBox);
+
+  if (length(funcModels)) then
+  begin
+    for i := low(funcModels) to high(funcModels) do
+      if (funcModels[i].TID >= 1000) then
+        result := funcModels[i].ID;
+  end;
+end;
+
+function isUpToDate(): boolean;
+var
+  i: integer;
+  funcVersion: string;
+  funcRemoteVersionNumbers, funcLocalVersionNumbers: TStringArray;
+begin
+  funcVersion := getPage('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLBarbeque.version');
+  funcRemoteVersionNumbers := explode('.', funcVersion);
+  funcLocalVersionNumbers := explode('.', VERSION);
+
+  for i := low(funcRemoteVersionNumbers) to high(funcRemoteVersionNumbers) do
+  begin
+    if (strToInt(funcRemoteVersionNumbers[i]) <> strToInt(funcLocalVersionNumbers[i])) then
+      exit(false);
+  end;
+
+  exit(true);
+end;
+
+procedure update()
+var
+  funcFile: integer;
+  funcScript, funcFileName: string;
+begin
+  funcScript := getPage('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLBarbeque.simba');
+
+  funcFileName := scriptPath + 'OGLBarbeque.simba';
+  funcFile := rewriteFile(funcFileName, true);
+
+  try
+    writeFileString(funcFile, funcScript)
+  except
+    writeln('Failed to write!');
+  end;
+
+  closeFile(funcFile);
+
+  writeln('Script has been updated, please re-open this file and restart the script.');
+  terminateScript();
+end;
+
+procedure rotateCamera;
+var
+  funcIndex: integer;
+begin
+  for funcIndex := 0 to random(4) do
+  begin
+    minimap.setDegrees(random(0, 360));
+    wait(random(120));
+  end;
+
+  if (random(2) = 0) then
+     mainScreen.setVerticalDegrees(69);
+
+  minimap.setDegrees(random(332, 353));
+end;
+
+procedure twiddleThumbs;
+begin
+  case random(533) of
+    1: rotateCamera();
+  end;
+end;
+
+function getExperience(): integer;
+var
+  xpTexture: glTextureArray;
+  xpBox: tBox;
+begin
+  xpTexture := ogl.getTextures(XP_TEXTURE);
+  if (not xpTexture.isEmpty()) then
+  begin
+    xpBox := intToBox(xpTexture[0].bounds.x1 - 250, xpTexture[0].bounds.y1, xpTexture[0].bounds.x2, xpTexture[0].bounds.y2);
+    result := explode('+', ogl.getChars(xpBox).toString())[0].parseInt();
+  end;
+end;
+
+procedure printProgress();
+var
+  elapsedTime: integer;
+  hours: double;
+  minutes: double;
+  gainedExperience: integer;
+begin
+  elapsedTime := getSystemTime() - startTime;
+  hours := elapsedTime / 3600000;
+  minutes := floor(elapsedTime / 60000) mod 60;
+  gainedExperience := getExperience() - startExperience;
+
+  writeln('Running for: ', floor(hours), 'h ', minutes, 'm');
+  writeln('Experience earned: ', gainedExperience);
+  writeln('Experience per hour: ', floor(gainedExperience / hours));
+  writeln('=========================================');
+
+  canPrintProgress.setTime(60000);
+end;
+
+function isCooking: boolean;
+begin
+  result := (ogl.getModels(playerId).isEmpty());
+end;
+
+procedure cook;
+begin
+  mouse.click(clientCenter.closest(ogl.getModels(BARBEQUE_CHOPPING_TABLE))[0].randomizePointEllipse(50));
+
+  canCook.setTime(normalRandom(2000, 3000));
+end;
+
+function hasMaxTemperature: boolean;
+begin
+  result := (ogl.getTextures(EMPTY_GAUGE).indexes() = 0);
+end;
+
+function eatIceCream: boolean;
+var
+  funcTimeout: tCountDown;
+begin
+  if (inventory.clickItem(ICE_CREAM)) then
+  begin
+    funcTimeout.setTime(5000);
+    repeat
+      wait(normalRandom(300, 500));
+    until (funcTimeout.isFinished()) or (not hasMaxTemperature());
+  end;
+
+  result := (not hasMaxTemperature());
+end;
+
+function shouldDrinkCocktail: boolean;
+var
+  funcChat: tStringArray;
+  i: integer;
+begin
+  funcChat := chat.getChat(true);
+
+  for i := low(funcChat) to high(funcChat) do
+    if (pos('The effects of the cocktail boost', funcChat[i]) <> 0) then
+      exit(true);
+
+  result := false;
+end;
+
+procedure drinkCocktail;
+begin
+  inventory.clickItem(COCKTAIL_TID, COCKTAIL_CID);
+
+  canDrinkCocktail.setTime(1500000);
+end;
+
+procedure logout()
+var
+  funcBounds: tBox = [WIDTH - 10, 0, WIDTH, 10];
+  funcTimeout: tCountDown;
+  funcTextures: glTextureArray;
+begin
+  funcTimeout.setTime(5000);
+  writeln('Logging out...');
+
+  mouse.click(funcBounds);
+
+  repeat
+    funcTextures := ogl.getTextures(91275, 12483092);
+  until (not funcTextures.isEmpty()) or (funcTimeout.isFinished());
+
+  if (not funcTextures.isEmpty()) then
+    mouse.click(clientCenter.closest(funcTextures)[0].randomizePointEllipse(15));
+end;
+
+procedure mainLoop;
+var
+  funcReaction: procedure() = @twiddleThumbs;
+begin
+  if (canPrintProgress.isFinished()) then
+    printProgress();
+
+  if (hasMaxTemperature()) and (not eatIceCream()) then
+  begin
+    writeln('Reached max temperature and could not eat any more ice cream.');
+    logout();
+    terminateScript();
+  end
+  else
+  begin
+    if (canDrinkCocktail.isFinished()) and (shouldDrinkCocktail()) then
+      funcReaction := @drinkCocktail;
+    else if (not isCooking()) and canCook.isFinished() then
+      funcReaction := @cooking;
+  end;
+
+  funcReaction();
+end;
+
+begin
+  ogl.setup(WIDTH, HEIGHT);
+  clientCenter := ogl.getClientMidPoint();
+  startTime := getSystemTime();
+  ogl.setDebugMode(GLX_DEBUG);
+
+  if (not isUpToDate()) then
+    update();
+
+  writeln('[OGL] Barbeque v', VERSION, ' by ChaosEnergy');
+  writeln('=========================================');
+
+  playerId := getPlayerId();
+
+  try
+    startExperience := getExperience();
+
+    repeat
+      mainLoop;
+      wait(normalRandom(220, 670));
+    until false;
+  except
+    writeln('Oops! It appears I have crashed.');
+    logout();
+    terminateScript();
+  end;
+end.
