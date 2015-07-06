@@ -7,11 +7,7 @@ program OGLBonfire;
   Make sure to set your game window to 'Resizable' and your interface to the
   RuneScape 3 default. Also turn on 'Show XP tracker' at the Interface settings.
 
-  Change player model IDs at line 39. There are two different animations so you
-  need two integers in the array. You can get the model IDs by using
-  the ogLib debug mode. (check aforementioned thread for more info)
-
-  Change your prefered log type to burn at line 38.
+  Change your prefered log type to burn at line 34.
 
   If you prefer a different screen size, change it at lines 52 and 53. }
 
@@ -31,12 +27,7 @@ const
   MAGIC_LOG : tLog = [122910, 3947820, 4145199];
   ELDER_LOG : tLog = [118575, 3616291, 3747877];
   ALL_LOGS : tCardinalArray = [116280, 122910, 118575];
-
-{ const Player Constants;
-  Description: Constants that should be changed based on your player or preference.}
-const
-  LOG_TYPE : tLog = MAPLE_LOG;
-  PLAYER_BURNING : tCardinalArray = [0, 0];
+  LOG_TYPE : tLog = MAPLE_LOG; // change me
 
 { Script Constants;
   Description: Constants specific to thie script. }
@@ -52,11 +43,11 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '1.0.3';
+  VERSION = '1.1.0';
 
 var
   clientCenter: tPoint;
-  startTime, startExperience, logsBurnt: integer;
+  startTime, startExperience, logsBurnt, playerID: integer;
   canOpenBank, canAddToFire, canClickFireSpirit, canPrintProgress: tCountDown;
 
 procedure tBank.close();
@@ -117,6 +108,24 @@ begin
   exit(result);
 end;
 
+{ Credits to Bly for the idea of the getPlayerId function. }
+function getPlayerId: integer;
+var
+  funcModels: glModelArray;
+  funcPlayerModelBox: tBox;
+  i: integer;
+begin
+  funcPlayerModelBox := intToBox(clientCenter.x - 60, clientCenter.y - 25, clientCenter.x + 40, clientCenter.y + 40);
+  funcModels := ogl.getModels(funcPlayerModelBox);
+
+  if (length(funcModels)) then
+  begin
+    for i := low(funcModels) to high(funcModels) do
+      if (funcModels[i].TID >= 1000) then
+        result := funcModels[i].ID;
+  end;
+end;
+
 function isUpToDate(): boolean;
 var
   i: integer;
@@ -154,18 +163,7 @@ begin
 
   closeFile(funcFile);
 
-  funcFile := rewriteFile(scriptPath + 'BonfireModels.txt', true);
-
-  try
-    writeFileString(funcfile, 'PLAYER_BURNING: ' + intToStr(PLAYER_BURNING[0]) + ', ' + intToStr(PLAYER_BURNING[1]))
-  except
-    writeln('Failed to write!');
-  end;
-
-  closeFile(funcFile);
-
   writeln('Script has been updated, please re-open this file and restart the script.');
-  writeln('Your model IDs have been saved in BonfireModels.txt');
   terminateScript();
 end;
 
@@ -242,7 +240,10 @@ end;
 procedure withdrawItems;
 begin
   if (inventory.getItemCount() <> 0) then
+  begin
     bank.clickDepositCarriedItems();
+    wait(normalRandom(800, 1600));
+  end;
 
   if (canPrintProgress.isFinished()) then
     printProgress();
@@ -259,7 +260,7 @@ function isBurning: boolean;
 var
   funcTimeout: tCountDown;
 begin
-  result := (not ogl.getModels(PLAYER_BURNING).isEmpty());
+  result := (ogl.getModels(playerId).isEmpty());
 end;
 
 function hasFire: boolean;
@@ -325,6 +326,7 @@ begin
 
   if (not mouse.rightClickOption(funcClickPoint, 'Collect', normalRandom(250, 550))) then
   begin
+    wait(normalRandom(800, 1600));
     funcClickPoint := [funcClickPoint.x, (funcClickPoint.y - normalRandom(4, 7))];
     mouse.rightClickOption(funcClickPoint, 'Collect', normalRandom(250, 550))
   end;
@@ -387,6 +389,8 @@ begin
 
   writeln('[OGL] Bonfire v', VERSION, ' by ChaosEnergy');
   writeln('=========================================');
+
+  playerId := getPlayerId();
 
   try
     startExperience := getExperience();
