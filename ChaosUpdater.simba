@@ -3,33 +3,51 @@ program ChaosUpdater;
 const
   SCRIPTS: array[0..1] of string = ['OGLDraynorChopper', 'OGLBonfire'];
 
-procedure update;
 var
-  funcFile, i: integer;
-  funcScript, funcVersion, funcScriptName, funcFileName: string;
+  i: integer;
+  script: string;
+
+function proxyRequest(funcUrl: string): string;
 begin
-  for i := low(SCRIPTS) to high(SCRIPTS) do
-  begin
-    funcScriptName := SCRIPTS[i];
-    writeln('[', funcScriptName, '] Downloading... ');
+  result := getPage('http://static.frement.net/proxy.php?u=' + funcUrl);
+end;
 
-    funcVersion := getPage('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/' + funcScriptName + '.version');
-    funcScript := getPage('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/' + funcScriptName + '.simba');
+procedure update(funcUrl, funcScriptName: string; funcUseProxy: boolean = true; funcPath: string = '')
+var
+  funcFile: integer;
+  funcScript, funcFileName: string;
+begin
+  if (funcUseProxy) and (pos('https://', funcUrl) <> 0) then
+    funcScript := proxyRequest(funcUrl)
+  else
+    funcScript := getPage(funcUrl);
 
-    funcFileName := scriptPath + funcScriptName + '.simba';
-    funcFile := rewriteFile(funcFileName, true);
+  if (funcPath = '') then
+    funcPath := scriptPath;
 
-    try
-      writeFileString(funcFile, funcScript)
-    except
-      writeln('[', funcScriptName, '] Failed to write');
-    end;
+  if (pos('.simba', funcScriptName) <> 0) then
+    funcFileName := funcPath + funcScriptName
+  else
+    funcFileName := funcPath + funcScriptName + '.simba';
 
-    closeFile(funcFile);
-    writeln('[', funcScriptName, '] Script updated to version ', funcVersion);
+  funcFile := rewriteFile(funcFileName, true);
+
+  try
+    writeFileString(funcFile, funcScript);
+    writeln('[', funcScriptName, '] Updated script');
+  except
+    writeln('[', funcScriptName, '] Failed to write. Script was not updated!');
   end;
+
+  closeFile(funcFile);
 end;
 
 begin
-  update();
+  update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/cLib.simba', 'cLib', true, includePath);
+
+  for i := 0 to length(SCRIPTS) do
+  begin
+    script := 'https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/' + SCRIPTS[i] + '.simba';
+    update(script, SCRIPTS[i]);
+  end;
 end.

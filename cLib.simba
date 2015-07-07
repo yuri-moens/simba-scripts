@@ -1,0 +1,280 @@
+{$include_once ogLib/lib/core/core.simba}
+
+const
+  CLIB_VERSION : string = '1.0.0';
+
+type tAntiban = record
+  __: boolean;
+end;
+
+type tPlayer = record
+  __: boolean;
+end;
+
+type tWeb = record
+  __: boolean;
+end;
+
+var
+  antiban: tAntiban;
+  player: tPlayer;
+  web: tWeb;
+
+procedure tAntiban.rotateCamera(funcEndDegrees: integer; funcEndRandom: integer = 10; funcMaxRotations: integer = 4);
+var
+  i: integer;
+begin
+  for i := 0 to random(funcMaxRotations) do
+  begin
+    minimap.setDegrees(random(0, 360));
+    wait(random(140));
+  end;
+
+  minimap.setDegrees(funcEndDegrees + normalRandom(-funcEndRandom, funcEndRandom));
+end;
+
+function tBank.close(): boolean;
+var
+  funcTimeout: tCountDown;
+begin
+  funcTimeout.setTime(1500);
+  repeat
+    typeByte(VK_ESCAPE);
+    wait(normalRandom(400, 600));
+  until (not bank.hasBank()) or (funcTimeout.isFinished());
+
+  if (bank.hasBank()) then
+    mouse.click(ogl.getClientMidPoint().closest(ogl.getTextures(16320, 7086623))[0].randomizePointEllipse(7))
+  else
+    exit(true);
+
+  funcTimeout.setTime(1000);
+  repeat
+    wait(100);
+  until (funcTimeout.isFinished()) or (not bank.hasBank());
+
+  exit(bank.hasBank());
+end;
+
+function tBank.open(): boolean;
+const
+  BANKS : tCardinalArray = [1828922260, 2878626002, 2083337462, 2697527608, 915100373, 3489743445, 4243090208, 2783808500];
+  BANK_BOOTHS: tCardinalArray = [2697527608];
+  BANKERS : tCardinalArray = [1828922260];
+var
+  funcTimeout: tCountDown;
+  funcClickPoint, funcClientCenter: tPoint;
+  funcBanks, funcBankBooths, funcBankers: glModelArray;
+begin
+  funcClientCenter := ogl.getClientMidPoint();
+  funcBankBooths := ogl.getModels(BANK_BOOTHS);
+  if (not funcBankBooths.isEmpty()) then
+  begin
+    funcBankers := ogl.getModels(BANKERS);
+    funcClickPoint := funcClientCenter.closest(funcBankers)[0].closest(funcBankBooths)[0].randomizePointEllipse(25);
+  end
+  else
+    funcClickPoint := funcClientCenter.closest(ogl.getModels(BANKS))[0].randomizePointEllipse(25);
+
+  mouse.click(funcClickPoint);
+
+  funcTimeout.setTime(2000);
+  repeat
+    wait(100);
+  until (funcTimeout.isFinished()) or (bank.hasBank());
+
+  result := bank.hasBank();
+end;
+
+{ This function was taken from ogLib and edited to ignore the 1px texture in the inventory.
+  https://github.com/ObscuritySRL/ogLib/blob/master/lib/interfaces/inventory.simba}
+function tInventory.getRealItems(funcID,funcColourID:int32):glTextureArray;overload;
+var
+  funcContinue:boolean;
+  funcPointer:pointer;
+  funcPointerIndex,
+    funcPointerSize,
+    funcResultIndex:uInt32=0;
+  funcTexture: glTexture;
+begin
+  funcPointer:=glTextures(funcPointerSize);
+  {if funcPointerSize<1 then
+    exit();}
+  for funcPointerIndex to funcPointerSize-1 do
+    begin
+      if funcPointer^=88625 then
+        funcContinue:=true
+      else if funcContinue then
+        break;
+      funcPointer:=funcPointer+36;
+    end;
+  if funcPointerIndex=funcPointerSize then
+    exit();
+  setLength(result,funcPointerSize);
+  for funcPointerIndex to funcPointerSize-1 do
+    begin
+      if (funcPointer^=73440) and similarColors((funcPointer+4)^,1256246,oglColourTolerance) then
+        break
+      else if (funcPointer^=funcID) and similarColors((funcPointer+4)^,funcColourID,oglColourTolerance) then
+        begin
+          funcTexture := glTexture(funcPointer^);
+          if (funcTexture.x <> 1254) then
+          begin
+            result[funcResultIndex]:=glTexture(funcPointer^);
+            funcResultIndex:=funcResultIndex+1;
+          end;
+        end;
+      funcPointer:=funcPointer+36;
+    end;
+  setLength(result,funcResultIndex);
+  exit(result);
+end;
+
+function tLogin.logout(): boolean;
+var
+  funcBounds: tBox;
+  funcTimeout: tCountDown;
+  funcTextures: glTextureArray;
+begin
+  funcBounds := [ogl.getClientWidth() - 10, 0, ogl.getClientWidth(), 10];
+  writeln('Logging out...');
+
+  mouse.click(funcBounds);
+
+  funcTimeout.setTime(5000);
+  repeat
+    funcTextures := ogl.getTextures(91275, 12483092);
+  until (not funcTextures.isEmpty()) or (funcTimeout.isFinished());
+
+  if (not funcTextures.isEmpty()) then
+    mouse.click(ogl.getClientMidPoint().closest(funcTextures)[0].randomizePointEllipse(15));
+
+  funcTimeout.setTime(5000);
+  repeat
+    wait(250);
+  until (funcTimeout.isFinished()) or (login.hasLogin());
+
+  result := login.hasLogin();
+end;
+
+{ Credits to Bly for the idea of the getPlayerId function. }
+function tPlayer.getId(): integer;
+var
+  funcModels: glModelArray;
+  funcPlayerModelBox: tBox;
+  funcClientCenter: tPoint;
+  i: integer;
+begin
+  funcClientCenter := ogl.getClientMidPoint();
+  funcPlayerModelBox := intToBox(funcClientCenter.x - 60, funcClientCenter.y - 25, funcClientCenter.x + 40, funcClientCenter.y + 40);
+  funcModels := ogl.getModels(funcPlayerModelBox);
+
+  if (length(funcModels)) then
+  begin
+    for i := low(funcModels) to high(funcModels) do
+      if (funcModels[i].TID >= 1000) then
+        result := funcModels[i].ID;
+  end;
+end;
+
+function tPlayer.getExperience(funcIconTextureId: integer = 48705): integer;
+var
+  funcXpTexture: glTextureArray;
+  funcXpBox: tBox;
+begin
+  funcXpTexture := ogl.getTextures(funcIconTextureId);
+  if (not funcXpTexture.isEmpty()) then
+  begin
+    funcXpBox := intToBox(funcXpTexture[0].bounds.x1 - 250, funcXpTexture[0].bounds.y1, funcXpTexture[0].bounds.x2, funcXpTexture[0].bounds.y2);
+    result := explode('+', ogl.getChars(funcXpBox).toString())[0].parseInt();
+  end;
+end;
+
+function tPlayer.isAnimating(funcPlayerId: integer; funcTimeout: tCountdown = 0): boolean;
+var
+  funcIdle: glModelArray;
+begin
+  if (funcTimeout = 0) then
+    result := (ogl.getModels(funcPlayerId).isEmpty())
+  else
+  begin
+    repeat
+      funcIdle := ogl.getModels(funcPlayerId);
+      wait(100);
+    until (funcIdle.isEmpty()) or (funcTimeout.isFinished());
+
+    result := funcIdle.isEmpty();
+  end;
+end;
+
+function tWeb.proxyRequest(funcUrl: string): string;
+begin
+  result := getPage('http://static.frement.net/proxy.php?u=' + funcUrl);
+end;
+
+function tWeb.isUpToDate(funcLocalVersion, funcUrl: string; funcUseProxy: boolean = true): boolean;
+var
+  i: integer;
+  funcRemoteVersion: string;
+  funcRemoteVersionNumbers, funcLocalVersionNumbers: TStringArray;
+begin
+  if (funcUseProxy) and (pos('https://', funcUrl) <> 0) then
+    funcRemoteVersion := proxyRequest(funcUrl)
+  else
+    funcRemoteVersion := getPage(funcUrl);
+
+  funcRemoteVersionNumbers := explode('.', funcRemoteVersion);
+  funcLocalVersionNumbers := explode('.', funcLocalVersion);
+
+  for i := low(funcRemoteVersionNumbers) to high(funcRemoteVersionNumbers) do
+  begin
+    if (strToInt(funcRemoteVersionNumbers[i]) <> strToInt(funcLocalVersionNumbers[i])) then
+      exit(false);
+  end;
+
+  exit(true);
+end;
+
+procedure tWeb.update(funcUrl, funcScriptName: string; funcUseProxy: boolean = true; funcPath: string = '')
+var
+  funcFile: integer;
+  funcScript, funcFileName: string;
+begin
+  if (funcUseProxy) and (pos('https://', funcUrl) <> 0) then
+    funcScript := proxyRequest(funcUrl)
+  else
+    funcScript := getPage(funcUrl);
+
+  if (funcPath = '') then
+    funcPath := scriptPath;
+
+  if (pos('.simba', funcScriptName) <> 0) then
+    funcFileName := funcPath + funcScriptName
+  else
+    funcFileName := funcPath + funcScriptName + '.simba';
+
+  funcFile := rewriteFile(funcFileName, true);
+
+  try
+    writeFileString(funcFile, funcScript)
+  except
+    writeln('Failed to write!');
+  end;
+
+  closeFile(funcFile);
+
+  writeln('Script has been updated, please re-open this file and restart the script.');
+  terminateScript();
+end;
+
+begin
+  writeln('[cLib] Checking for updates...');
+  if (not web.isUpToDate(CLIB_VERSION, 'https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/cLib.version')) then
+  begin
+    writeln('[cLib] Newer version found! Updating...');
+    web.update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/cLib.simba', 'cLib.simba', true, includePath);
+    writeln('[cLib] Library has been updated.');
+  end
+  else
+    writeln('[cLib] Library is up to date.');
+end.
