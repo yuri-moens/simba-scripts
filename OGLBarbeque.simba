@@ -18,7 +18,7 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG: string = 'none';
-  VERSION: string = '1.0.0';
+  VERSION: string = '1.0.1';
   XP_TEXTURE = 48705;
 
 var
@@ -229,9 +229,9 @@ begin
   else
   begin
     if (canDrinkCocktail.isFinished()) and (shouldDrinkCocktail()) then
-      funcReaction := @drinkCocktail;
+      funcReaction := @drinkCocktail
     else if (not isCooking()) and canCook.isFinished() then
-      funcReaction := @cooking;
+      funcReaction := @cook;
   end;
 
   funcReaction();
@@ -243,8 +243,8 @@ begin
   startTime := getSystemTime();
   ogl.setDebugMode(GLX_DEBUG);
 
-  if (not isUpToDate()) then
-    update();
+  //if (not isUpToDate()) then
+  //  update();
 
   writeln('[OGL] Barbeque v', VERSION, ' by ChaosEnergy');
   writeln('=========================================');
