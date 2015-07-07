@@ -1,3 +1,7 @@
+2.0.0
+=====
+  - Rewrite using cLib.
+
 1.1.0
 =====
   - Player model ID setup is now done by the script so users won't have to search their own model IDs.
