@@ -1,3 +1,7 @@
+1.0.3
+=====
+  - Added function tAntiban.alert.
+
 1.0.2
 =====
   - Added wait in tMouse.clickAction function.

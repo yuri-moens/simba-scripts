@@ -1,7 +1,7 @@
 {$include_once ogLib/lib/core/core.simba}
 
 const
-  CLIB_VERSION : string = '1.0.2';
+  CLIB_VERSION : string = '1.0.3';
 
 type tAntiban = record
   __: boolean;
@@ -29,6 +29,20 @@ var
   player: tPlayer;
   walking: tWalking;
   web: tWeb;
+
+function tAntiban.alert(funcMessage: string): boolean;
+var
+  funcChat: tStringArray;
+  i: integer;
+begin
+  funcChat := chat.getChat(true);
+
+  for i := low(funcChat) to high(funcChat) do
+    if (pos(funcMessage, funcChat[i]) <> 0) then
+      exit(true);
+
+  result := false;
+end;
 
 procedure tAntiban.rotateCamera(funcEndDegrees: integer; funcEndRandom: integer = 10; funcMaxRotations: integer = 4);
 var
