@@ -1,3 +1,10 @@
+1.0.1
+=====
+  - Added function tMouse.clickAction.
+  - Added tWalking type.
+  - Added functions tWalking.walkToIcon and tWalking.walkToRelativePoint.
+  - Added function cLib.selfUpdate.
+
 1.0.0
 =====
   - Release

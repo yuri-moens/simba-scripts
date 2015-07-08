@@ -1,13 +1,21 @@
 {$include_once ogLib/lib/core/core.simba}
 
 const
-  CLIB_VERSION : string = '1.0.0';
+  CLIB_VERSION : string = '1.0.1';
 
 type tAntiban = record
   __: boolean;
 end;
 
+type tCLib = record
+  __: boolean;
+end;
+
 type tPlayer = record
+  __: boolean;
+end;
+
+type tWalking = record
   __: boolean;
 end;
 
@@ -17,7 +25,9 @@ end;
 
 var
   antiban: tAntiban;
+  cLib: tCLib;
   player: tPlayer;
+  walking: tWalking;
   web: tWeb;
 
 procedure tAntiban.rotateCamera(funcEndDegrees: integer; funcEndRandom: integer = 10; funcMaxRotations: integer = 4);
@@ -137,7 +147,6 @@ var
   funcTextures: glTextureArray;
 begin
   funcBounds := [ogl.getClientWidth() - 10, 0, ogl.getClientWidth(), 10];
-  writeln('Logging out...');
 
   mouse.click(funcBounds);
 
@@ -155,6 +164,34 @@ begin
   until (funcTimeout.isFinished()) or (login.hasLogin());
 
   result := login.hasLogin();
+end;
+
+function tMouse.clickAction(funcClickPoint: TPoint; funcAction: string): boolean
+var
+  funcTimeout: tCountDown;
+  funcTooltip: string;
+begin
+  moveMouse(funcClickPoint.x, funcClickPoint.y);
+
+  funcTimeout.setTime(1000);
+  repeat
+    funcTooltip := mouse.getTooltip()
+  until (funcTooltip <> '') or (funcTimeout.isFinished());
+
+  if (funcTooltip <> '') then
+  begin
+    if (pos(funcAction, funcTooltip) <> 0) then
+    begin
+      mouse.click(funcClickPoint);
+      result := true;
+    end
+    else
+      result := mouse.rightClickOption(funcClickPoint, funcAction);
+
+    exit(result);
+  end;
+
+  exit(false);
 end;
 
 { Credits to Bly for the idea of the getPlayerId function. }
@@ -205,6 +242,31 @@ begin
 
     result := funcIdle.isEmpty();
   end;
+end;
+
+function tWalking.walkToIcon(funcIconTextureId: integer;
+                      funcRandomX1: integer = 2;
+                      funcRandomX2: integer = 2;
+                      funcRandomY1: integer = 2;
+                      funcRandomY2: integer = 2): boolean;
+var
+  funcIconTextures: glTextureArray;
+begin
+  funcIconTextures := ogl.getTextures(funcIconTextureId);
+
+  if not funcIconTextures.isEmpty() then
+    mouse.click(ogl.getClientMidPoint().closest(funcIconTextures)[0].adjustPosition(normalRandom(funcRandomX1, funcRandomX2), normalRandom(funcRandomY1, funcRandomY2)));
+
+  result := not funcIconTextures.isEmpty();
+end;
+
+procedure tWalking.walkToRelativePoint(funcRandomX1: integer = 2;
+                      funcRandomX2: integer = 2;
+                      funcRandomY1: integer = 2;
+                      funcRandomY2: integer = 2);
+begin
+  mouse.click(minimap.getScreenPosition(minimap.getLocalPosition()
+    .adjustPosition(normalRandom(funcRandomX1, funcRandomX2), normalRandom(funcRandomY1, funcRandomY2))), 1);
 end;
 
 function tWeb.proxyRequest(funcUrl: string): string;
@@ -267,6 +329,7 @@ begin
   terminateScript();
 end;
 
+procedure cLib.selfUpdate();
 begin
   writeln('[cLib] Checking for updates...');
   if (not web.isUpToDate(CLIB_VERSION, 'https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/cLib.version')) then
@@ -277,4 +340,4 @@ begin
   end
   else
     writeln('[cLib] Library is up to date.');
-end.
+end;
