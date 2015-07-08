@@ -1,7 +1,7 @@
 {$include_once ogLib/lib/core/core.simba}
 
 const
-  CLIB_VERSION : string = '1.0.1';
+  CLIB_VERSION : string = '1.0.2';
 
 type tAntiban = record
   __: boolean;
@@ -186,7 +186,7 @@ begin
       result := true;
     end
     else
-      result := mouse.rightClickOption(funcClickPoint, funcAction);
+      result := mouse.rightClickOption(funcClickPoint, funcAction, normalRandom(300, 650));
 
     exit(result);
   end;

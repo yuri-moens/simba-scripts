@@ -1,3 +1,7 @@
+1.0.2
+=====
+  - Added wait in tMouse.clickAction function.
+
 1.0.1
 =====
   - Added function tMouse.clickAction.
