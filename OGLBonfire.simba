@@ -44,7 +44,7 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '2.0.0';
+  VERSION = '2.0.1';
 
 var
   clientCenter: tPoint;
@@ -154,12 +154,12 @@ var
 begin
   wait(normalRandom(1500, 2500));
   funcClickPoint := clientCenter.closest(ogl.getModels(FIRE_SPIRIT))[0].randomizePointEllipse(8);
-  funcClickPoint := [funcClickPoint.x, (funcClickPoint.y + normalRandom(4, 7))];
+  funcClickPoint := [funcClickPoint.x, (funcClickPoint.y - normalRandom(7, 18))];
 
   if (not mouse.rightClickOption(funcClickPoint, 'Collect', normalRandom(250, 550))) then
   begin
     wait(normalRandom(800, 1600));
-    funcClickPoint := [funcClickPoint.x, (funcClickPoint.y - normalRandom(4, 7))];
+    funcClickPoint := [funcClickPoint.x, (funcClickPoint.y + normalRandom(7, 18))];
     mouse.rightClickOption(funcClickPoint, 'Collect', normalRandom(250, 550))
   end;
 
