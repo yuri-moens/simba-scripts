@@ -44,12 +44,15 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '2.0.1';
+  VERSION = '2.1.0';
+  ALERT_FLAG = false;
+  ALERT_KEYWORD = 'Username';
+  ALERT_SOUND = 'C:\Simba\sound.wav';
 
 var
   clientCenter: tPoint;
   startTime, startExperience, logsBurnt, playerId: integer;
-  canAddToFire, canClickFireSpirit, canPrintProgress: tCountDown;
+  canAddToFire, canClickFireSpirit, canPrintProgress, canAlert: tCountDown;
 
 procedure printProgress();
 var
@@ -75,6 +78,15 @@ end;
 
 procedure twiddleThumbs;
 begin
+  if ALERT_FLAG and canAlert.isFinished() then
+  begin
+    if antiban.alert(ALERT_KEYWORD) then
+    begin
+      playSound(ALERT_SOUND);
+      canAlert.setTime(30000);
+    end;
+  end;
+
   case random(533) of
     1: antiban.rotateCamera(342, 11, 4);
   end;
