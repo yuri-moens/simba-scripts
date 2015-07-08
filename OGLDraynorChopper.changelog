@@ -1,3 +1,7 @@
+2.0.0
+=====
+  - Rewrite using cLib.
+
 1.2.4
 =====
   - Fixed a bug where checkMinimapFlag() could crash the script. 
@@ -23,26 +27,21 @@
 
 1.2.0
 =====
-
   - Added auto-updating functionality.
 
 1.1.2
 =====
-
   - Meteorites should now be picked up correctly. Interaction is still buggy.
 
 1.1.1
 =====
-
   - Fixed experience and log counting to support bonus experience.
 
 1.1.0
 =====
-
  - Added proper experience counting, requires on-screen experience notifications.
  - Script clean-up.
 
 1.0.0
 =====
-
  - Release

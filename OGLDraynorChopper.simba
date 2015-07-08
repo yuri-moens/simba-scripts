@@ -1,22 +1,16 @@
 program OGLDraynorChopper;
-{$i ogLib\lib\core\core.simba}
+{$i cLib.simba}
 
 { This script requires ogLib. Learn how to set it up correctly here:
   https://villavu.com/forum/showthread.php?t=112486
 
+  This script also requires cLib. Learn how to set it up correctly here:
+  https://villavu.com/forum/showthread.php?t=113750
+
   Make sure to set your game window to 'Resizable' and your interface to the
   RuneScape 3 default.
 
-  Change player model IDs at lines 18 and 19. You can get the model IDs by using
-  the ogLib debug mode. (check aforementioned thread for more info)
-
-  If you prefer a different screen size, change it at lines 24 and 25. }
-
-{ const Player Constants;
-  Description: Constants for the player model. Change these to match your model. }
-const
-  MODEL_IDLE_ID = 0;
-  MODEL_CHOPPING_ID = 0;
+  If you prefer a different screen size, change it at lines 18 and 29. }
 
 { const Screen Constants;
   Description: Constants for the screen. Change these to your own preference. }
@@ -28,7 +22,7 @@ const
   Description: Miscellaneous constants for the script. }
 const
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '1.2.4';
+  VERSION = '2.0.0';
 
 { const Object Model Constants:
   Description: Constants for various object models. Shouldn't be changed. }
@@ -49,164 +43,39 @@ const
   METEORITE_CONTINUE_BOX_ID = 91275;
 
 var
-  clientCenter, lastTreePoint: tPoint;
+  clientCenter: tPoint;
   willowModels, nestModels, meteoriteModels: glModelArray;
   canChopTree, canPickupMeteorite, canPickupNest, canWalk, canOpenBank,
     canDeposit, canPrintProgress, canGetExperience: tCountDown = 0;
-  willowsCut, totalExperience: integer = 0;
+  willowsCut, startExperience, playerId: integer;
   startTime: integer;
-
-function isUpToDate(): boolean;
-var
-  i: integer;
-  funcVersion: string;
-  funcRemoteVersionNumbers, funcLocalVersionNumbers: TStringArray;
-begin
-  funcVersion := getPage('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLDraynorChopper.version');
-  funcRemoteVersionNumbers := explode('.', funcVersion);
-  funcLocalVersionNumbers := explode('.', VERSION);
-
-  for i := low(funcRemoteVersionNumbers) to high(funcRemoteVersionNumbers) do
-  begin
-    if (strToInt(funcRemoteVersionNumbers[i]) <> strToInt(funcLocalVersionNumbers[i])) then
-      exit(false);
-  end;
-
-  exit(true);
-end;
-
-procedure update()
-var
-  funcFile: integer;
-  funcScript, funcFileName: string;
-begin
-  funcScript := getPage('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLDraynorChopper.simba');
-
-  funcFileName := scriptPath + 'OGLDraynorChopper.simba';
-  funcFile := rewriteFile(funcFileName, true);
-
-  try
-    writeFileString(funcFile, funcScript)
-  except
-    writeln('Failed to write!');
-  end;
-
-  closeFile(funcFile);
-
-  funcFile := rewriteFile(scriptPath + 'DraynorChopperModels.txt', true);
-
-  try
-    writeFileString(funcfile, 'MODEL_IDLE_ID: ' + intToStr(MODEL_IDLE_ID) + ', MODEL_CHOPPING_ID: ' + intToStr(MODEL_CHOPPING_ID))
-  except
-    writeln('Failed to write!');
-  end;
-
-  closeFile(funcFile);
-
-  writeln('Script has been updated, please re-open this file and restart the script.');
-  writeln('Your model IDs have been saved in DraynorChopperModels.txt');
-  terminateScript();
-end;
-
-function getExperience(): integer;
-var
-  funcBounds: tBox;
-  funcExpString: string;
-  funcPlusPos: integer;
-  funcXpPos: integer;
-begin
-  funcBounds := [clientCenter.x - 100, 0, clientCenter.x + 100, 50];
-  funcExpString := ogl.getChars(funcBounds).toString();
-
-  funcPlusPos := pos('+', funcExpString);
-  funcXpPos := pos('xp', funcExpString);
-
-  if (funcPlusPos <> 0) and (funcXpPos <> 0) then
-  begin
-    result := copy(funcExpString, funcPlusPos + 1, funcXpPos - funcPlusPos - 2).parseInt();
-    canGetExperience.setTime(2000);
-  end
-end;
 
 procedure printProgress();
 var
   elapsedTime: integer;
   hours: double;
   minutes: double;
+  gainedExperience: integer;
 begin
   elapsedTime := getSystemTime() - startTime;
   hours := elapsedTime / 3600000;
   minutes := floor(elapsedTime / 60000) mod 60;
+  gainedExperience := player.getExperience() - startExperience;
 
   writeln('Running for: ', floor(hours), 'h ', minutes, 'm');
   writeln('Willows cut: ', willowsCut);
   writeln('Willows per hour: ', floor(willowsCut / hours));
-  writeln('Experience earned: ', totalExperience);
-  writeln('Experience per hour: ', floor(totalExperience / hours));
+  writeln('Experience earned: ', gainedExperience);
+  writeln('Experience per hour: ', floor(gainedExperience / hours));
   writeln('=========================================');
 
   canPrintProgress.setTime(15000);
 end;
 
-function tMouse.clickAction(funcClickPoint: TPoint; funcAction: string): boolean
-var
-  funcTimeout: tCountDown;
-  funcTooltip: string;
-begin
-  moveMouse(funcClickPoint.x, funcClickPoint.y);
-
-  funcTimeout.setTime(1000);
-  repeat
-    funcTooltip := mouse.getTooltip()
-  until (funcTooltip <> '') or (funcTimeout.isFinished());
-
-  if (funcTooltip <> '') then
-  begin
-    if (pos(funcAction, funcTooltip) <> 0) then
-    begin
-      mouse.click(funcClickPoint);
-      result := true;
-    end
-    else
-      result := mouse.rightClickOption(funcClickPoint, funcAction);
-
-    exit(result);
-  end;
-
-  exit(false);
-end;
-
-procedure rotateCamera;
-var
-  funcIndex: integer;
-begin
-  for funcIndex := 0 to random(4) do
-  begin
-    minimap.setDegrees(random(0, 360));
-    wait(random(120));
-  end;
-
-  if (random(2) = 0) then
-     mainScreen.setVerticalDegrees(69);
-
-  minimap.setDegrees(random(332, 353));
-end;
-
 procedure twiddleThumbs;
 begin
   case Random(533) of
-    1: rotateCamera();
-  end;
-end;
-
-function isChopping: boolean;
-begin
-  if (ogl.getModels(MODEL_CHOPPING_ID).isEmpty()) then
-    result := false
-  else
-  begin
-    canChopTree.setTime(0);
-    result := true;
+    1: antiban.rotateCamera(342, 11, 4);
   end;
 end;
 
@@ -221,7 +90,6 @@ var
   funcClickPoint: TPoint;
 begin
   funcClickPoint := clientCenter.closest(willowModels)[0].randomizePointEllipse(55);
-  lastTreePoint := funcClickPoint;
   mouse.click(funcClickPoint);
   canChopTree.setTime(random(4000, 6000));
 end;
@@ -243,18 +111,13 @@ end;
 
 procedure walkToWillows;
 begin
-  mouse.click(minimap.getScreenPosition(minimap.getLocalPosition()
-    .adjustPosition(normalRandom(-10, -6), normalRandom(6, 10))), 1);
+  walking.walkToRelativePoint(-10, -6, 6, 10);
   canWalk.setTime(normalRandom(5000, 10000));
 end;
 
 procedure walkToBank;
-var
-  funcClickPoint: tPoint;
 begin
-  funcClickPoint := clientCenter.closest(ogl.getTextures(BANK_ICON_ID))[0]
-    .adjustPosition(normalRandom(-10, -2), normalRandom(0, 10));
-  mouse.click(funcClickPoint);
+  walking.walkToIcon(BANK_ICON_ID, -10, -2, 0, 10);
   canWalk.setTime(normalRandom(5000, 10000));
 end;
 
@@ -354,32 +217,10 @@ begin
   canChopTree.setTime(normalRandom(2000, 2500));
 end;
 
-procedure logout()
-var
-  funcBounds: tBox = [WIDTH - 10, 0, WIDTH, 10];
-  funcTimeout: tCountDown;
-  funcTextures: glTextureArray;
-begin
-  funcTimeout.setTime(5000);
-  writeln('Logging out...');
-
-  mouse.click(funcBounds);
-
-  repeat
-    funcTextures := ogl.getTextures(91275, 12483092);
-  until (not funcTextures.isEmpty()) or (funcTimeout.isFinished());
-
-  if (not funcTextures.isEmpty()) then
-    mouse.click(clientCenter.closest(funcTextures)[0].randomizePointEllipse(15));
-end;
-
 procedure mainLoop;
 var
   funcReaction: procedure() = @twiddleThumbs;
 begin
-  if (canGetExperience.isFinished()) then
-    totalExperience := totalExperience + getExperience();
-
   if (isAtBank()) then
   begin
     if (inventory.isFull()) then
@@ -390,7 +231,7 @@ begin
         funcReaction := @openBank
     end
     else if (canWalk.isFinished()) then
-      funcReaction := @walkToWillows
+      walking.walkToWillows()
   end
   else
   begin
@@ -400,14 +241,17 @@ begin
         funcReaction := @pickupMeteorite
       else if (checkNests()) and (canPickupNest.isFinished()) then
         funcReaction := @pickupNest
-      else if (not isChopping())
+      else if (not player.isAnimating(playerId))
         and (checkTrees())
         and (not checkMinimapFlag())
         and (canChopTree.isFinished()) then
-        funcReaction := @chopTree
+        begin
+          funcReaction := @chopTree;
+          canChopTree.setTime(normalRandom(4000, 6000));
+        end
     end
     else if (canWalk.isFinished()) then
-      funcReaction := @walkToBank
+      walking.walkToBank()
   end;
 
   funcReaction();
@@ -418,21 +262,27 @@ begin
   clientCenter := ogl.getClientMidPoint();
   startTime := getSystemTime();
   ogl.setDebugMode(GLX_DEBUG);
+  cLib.selfUpdate();
 
-  if (not isUpToDate()) then
-    update();
+  if (not web.isUpToDate(VERSION, 'https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLDraynorChopper.version')) then
+    web.update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLDraynorChopper.version', 'OGLDraynorChopper');
 
   writeln('[OGL] Draynor Chopper v', VERSION, ' by ChaosEnergy');
   writeln('=========================================');
 
+  playerId := player.getId();
+
   try
+    startExperience := player.getExperience();
+
     repeat
       mainLoop;
       wait(normalRandom(220, 670));
     until false;
   except
     writeln('Oops! It appears I have crashed.');
-    logout();
+    writeln('Logging out...');
+    login.logout();
     terminateScript();
   end;
 end.
