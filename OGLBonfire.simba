@@ -10,9 +10,14 @@ program OGLBonfire;
   Make sure to set your game window to 'Resizable' and your interface to the
   RuneScape 3 default. Also turn on 'Show XP tracker' at the Interface settings.
 
-  Change your prefered log type to burn at line 33.
+  Change your prefered log type to burn at line 38.
 
-  If you prefer a different screen size, change it at lines 44 and 45. }
+  If you prefer a different screen size, change it at lines 49 and 50.
+
+  Setup
+  =====
+  1. Bank preset 1 should be a full inventory of your logs.
+  2. The log of your choice should be in slot 3 of your active action bar. }
 
 type
   tLog = record
@@ -44,7 +49,7 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '2.1.0';
+  VERSION = '2.2.0';
   ALERT_FLAG = false;
   ALERT_KEYWORD = 'Username';
   ALERT_SOUND = 'C:\Simba\sound.wav';
@@ -108,7 +113,7 @@ begin
   if (canPrintProgress.isFinished()) then
     printProgress();
 
-  mouse.rightClickOption(clientCenter.closest(ogl.getTextures(LOG_TYPE.id, LOG_TYPE.bankCid))[0].randomizePointEllipse(25), 'Withdraw-All', normalRandom(250, 550));
+  bank.clickPreset(1);
   logsBurnt := logsBurnt + 28;
 
   wait(normalRandom(330, 590));
@@ -121,24 +126,22 @@ var
   funcFires: glModelArray;
 begin
   funcFires := ogl.getModels(FIRES);
-  result := ((not funcFires.isEmpty()) and (clientCenter.distanceFrom(clientCenter.closest(funcFires)[0]) < 200));
+  result := ((not funcFires.isEmpty()) and (clientCenter.distanceFrom(clientCenter.closest(funcFires)[0]) < 150));
 end;
 
 procedure addToFire;
 var
   funcTimeout: tCountDown;
 begin
-  mouse.click(clientCenter.closest(inventory.getRealItems(LOG_TYPE.id, LOG_TYPE.cid))[0].randomizePointEllipse(15));
-
-  wait(normalRandom(400, 700));
+  typeSend('3', false);
 
   funcTimeout.setTime(2000);
   repeat
-    wait(300);
+    wait(normalRandom(150, 550));;
   until (production.hasProduction()) or (funcTimeout.isFinished());
 
   if (production.hasProduction()) then
-    production.setTool(2);
+    typeSend('3', false);
 
   canAddToFire.setTime(4000);
 end;
@@ -147,11 +150,19 @@ procedure startFire;
 var
   funcTimeout: tCountDown;
 begin
-  mouse.rightClickOption(clientCenter.closest(inventory.getRealItems(LOG_TYPE.id, LOG_TYPE.cid))[0].randomizePointEllipse(15), 'Light', normalRandom(250, 550));
-  funcTimeout.setTime(5000);
+  typeSend('3', false);
 
+  funcTimeout.setTime(2000);
   repeat
-    wait(300);
+    wait(normalRandom(150, 550));;
+  until (production.hasProduction()) or (funcTimeout.isFinished());
+
+  if (production.hasProduction()) then
+    typeSend('1', false);
+
+  funcTimeout.setTime(5000);
+  repeat
+    wait(normalRandom(150, 550));;
   until (hasFire()) or (funcTimeout.isFinished());
 end;
 
