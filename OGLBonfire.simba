@@ -118,7 +118,6 @@ begin
 
   wait(normalRandom(330, 590));
   bank.close();
-  wait (normalRandom(300, 600));
 end;
 
 function hasFire: boolean;
