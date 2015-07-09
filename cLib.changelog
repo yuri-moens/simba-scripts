@@ -1,3 +1,8 @@
+1.0.4
+=====
+  - tBank.close will only attempt to close bank if bank is actually open.
+  - tPlayer.getId should now return the player's ID rather than that of another player standing on the same tile.
+
 1.0.3
 =====
   - Added function tAntiban.alert.

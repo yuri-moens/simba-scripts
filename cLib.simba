@@ -1,7 +1,7 @@
 {$include_once ogLib/lib/core/core.simba}
 
 const
-  CLIB_VERSION : string = '1.0.3';
+  CLIB_VERSION : string = '1.0.4';
 
 type tAntiban = record
   __: boolean;
@@ -61,21 +61,24 @@ function tBank.close(): boolean;
 var
   funcTimeout: tCountDown;
 begin
-  funcTimeout.setTime(1500);
-  repeat
-    typeByte(VK_ESCAPE);
-    wait(normalRandom(400, 600));
-  until (not bank.hasBank()) or (funcTimeout.isFinished());
-
   if (bank.hasBank()) then
-    mouse.click(ogl.getClientMidPoint().closest(ogl.getTextures(16320, 7086623))[0].randomizePointEllipse(7))
-  else
-    exit(true);
+  begin
+    funcTimeout.setTime(1500);
+    repeat
+      typeByte(VK_ESCAPE);
+      wait(normalRandom(400, 600));
+    until (not bank.hasBank()) or (funcTimeout.isFinished());
 
-  funcTimeout.setTime(1000);
-  repeat
-    wait(100);
-  until (funcTimeout.isFinished()) or (not bank.hasBank());
+    if (bank.hasBank()) then
+      mouse.click(ogl.getClientMidPoint().closest(ogl.getTextures(16320, 7086623))[0].randomizePointEllipse(7))
+    else
+      exit(true);
+
+    funcTimeout.setTime(1000);
+    repeat
+      wait(100);
+    until (funcTimeout.isFinished()) or (not bank.hasBank());
+  end;
 
   exit(bank.hasBank());
 end;
@@ -218,7 +221,7 @@ var
 begin
   funcClientCenter := ogl.getClientMidPoint();
   funcPlayerModelBox := intToBox(funcClientCenter.x - 60, funcClientCenter.y - 25, funcClientCenter.x + 40, funcClientCenter.y + 40);
-  funcModels := ogl.getModels(funcPlayerModelBox);
+  funcModels := ogl.getModels(funcPlayerModelBox).reverse();
 
   if (length(funcModels)) then
   begin
