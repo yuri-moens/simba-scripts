@@ -22,7 +22,7 @@ const
   Description: Miscellaneous constants for the script. }
 const
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '2.0.0';
+  VERSION = '2.0.1';
 
 { const Object Model Constants:
   Description: Constants for various object models. Shouldn't be changed. }
@@ -231,7 +231,7 @@ begin
         funcReaction := @openBank
     end
     else if (canWalk.isFinished()) then
-      walking.walkToWillows()
+      walkToWillows()
   end
   else
   begin
@@ -251,7 +251,7 @@ begin
         end
     end
     else if (canWalk.isFinished()) then
-      walking.walkToBank()
+      walkToBank()
   end;
 
   funcReaction();
