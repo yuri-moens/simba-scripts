@@ -1,7 +1,7 @@
 {$include_once ogLib/lib/core/core.simba}
 
 const
-  CLIB_VERSION : string = '1.0.4';
+  CLIB_VERSION : string = '1.1.0';
 
 type tAntiban = record
   __: boolean;
@@ -30,6 +30,38 @@ var
   walking: tWalking;
   web: tWeb;
 
+const
+  AGILITY : tCardinalArray = [29580, 3220239];
+  ATTACK : tCardinalArray = [16918, 1644048];
+  CONSTITUTION : tCardinalArray = [38262, 5247763];
+  CONSTRUCTION : tCardinalArray = [54189, 5916465];
+  COOKING : tCardinalArray = [47376, 2958623];
+  CRAFTING : tCardinalArray = [33559, 2696483];
+  DEFENCE : tCardinalArray = [41952, 3552563];
+  DIVINATION : tCardinalArray = [22933, 2633540];
+  DUNGEONEERING : tCardinalArray = [58390, 5455656];
+  FARMING : tCardinalArray = [34536, 3158322];
+  FIREMAKING : tCardinalArray = [46008, 5256739];
+  FISHING : tCardinalArray = [54626, 3555911];
+  FLETCHING : tCardinalArray = [19315, 1642768];
+  HERBLORE : tCardinalArray = [54427, 3099168];
+  HUNTER : tCardinalArray = [30306, 1839885];
+  MAGIC : tCardinalArray = [51211, 2040371];
+  MINING : tCardinalArray = [16653, 1248522];
+  PRAYER : tCardinalArray = [23912, 2436403];
+  RANGED : tCardinalArray = [20999, 1183499];
+  RUNECRAFTING : tCardinalArray = [33877, 4272937];
+  SLAYER : tCardinalArray = [54733, 5261117];
+  SMITHING : tCardinalArray = [31773, 2170654];
+  STRENGTH : tCardinalArray = [39319, 4533282];
+  SUMMONING : tCardinalArray = [37582, 3291452];
+  THIEVING : tCardinalArray = [25506, 1381397];
+  WOODCUTTING : tCardinalArray = [44243, 1710094];
+
+var
+  meteoriteTimeout: tCountDown;
+  meteoriteSkill: tCardinalArray = ATTACK;
+
 function tAntiban.alert(funcMessage: string): boolean;
 var
   funcChat: tStringArray;
@@ -42,6 +74,46 @@ begin
       exit(true);
 
   result := false;
+end;
+
+procedure tAntiban.doMeteorite();
+var
+  funcClientCenter: tPoint;
+  funcTimeout: tCountDown;
+  funcContinueTextures: glTextureArray;
+begin
+  wait(normalRandom(2000, 3000));
+  tBank.close();
+
+  funcClientCenter := ogl.getClientMidPoint();
+  mouse.clickAction(funcClientCenter.closest(ogl.getModels(3856085471))[0].randomizePointEllipse(15), 'Investigate');
+
+  funcTimeout.setTime(normalRandom(10000, 15000));
+  repeat
+    funcContinueTextures := ogl.getTextures(91275, 12483092);
+  until (funcTimeout.isFinished()) or (not funcContinueTextures.isEmpty());
+
+  if (not funcContinueTextures.isEmpty()) then
+  begin
+    mouse.click(funcClientCenter.closest(ogl.getTextures(meteoriteSkill[0], meteoriteSkill[1]))[0].randomizePointEllipse(7));
+    wait(normalRandom(900, 1800));
+    mouse.click(funcClientCenter.closest(funcContinueTextures)[0].randomizePointEllipse(20));
+    meteoriteTimeout.setTime(180000);
+
+    funcTimeout.setTime(normalRandom(3000, 4000));
+    repeat
+      wait(normalRandom(250, 500));
+    until (funcTimeout.isFinished()) or (ogl.getTextures(91275, 12483092).isEmpty());
+  end;
+end;
+
+function tAntiban.checkRandoms(): boolean;
+begin
+  if meteoriteTimeout.isFinished() and not ogl.getModels(3856085471).isEmpty() then
+  begin
+    self.doMeteorite();
+    result := true;
+  end;
 end;
 
 procedure tAntiban.rotateCamera(funcEndDegrees: integer; funcEndRandom: integer = 10; funcMaxRotations: integer = 4);
@@ -57,19 +129,24 @@ begin
   minimap.setDegrees(funcEndDegrees + normalRandom(-funcEndRandom, funcEndRandom));
 end;
 
+procedure tAntiban.setMeteoriteSkill(funcSkill: tCardinalArray);
+begin
+  meteoriteSkill := funcSkill;
+end;
+
 function tBank.close(): boolean;
 var
   funcTimeout: tCountDown;
 begin
-  if (bank.hasBank()) then
+  if (self.hasBank()) then
   begin
     funcTimeout.setTime(1500);
     repeat
       typeByte(VK_ESCAPE);
       wait(normalRandom(400, 600));
-    until (not bank.hasBank()) or (funcTimeout.isFinished());
+    until (not self.hasBank()) or (funcTimeout.isFinished());
 
-    if (bank.hasBank()) then
+    if (self.hasBank()) then
       mouse.click(ogl.getClientMidPoint().closest(ogl.getTextures(16320, 7086623))[0].randomizePointEllipse(7))
     else
       exit(true);
@@ -77,10 +154,10 @@ begin
     funcTimeout.setTime(1000);
     repeat
       wait(100);
-    until (funcTimeout.isFinished()) or (not bank.hasBank());
+    until (funcTimeout.isFinished()) or (not self.hasBank());
   end;
 
-  exit(bank.hasBank());
+  exit(self.hasBank());
 end;
 
 function tBank.open(): boolean;
@@ -108,9 +185,9 @@ begin
   funcTimeout.setTime(2000);
   repeat
     wait(100);
-  until (funcTimeout.isFinished()) or (bank.hasBank());
+  until (funcTimeout.isFinished()) or (self.hasBank());
 
-  result := bank.hasBank();
+  result := self.hasBank();
 end;
 
 { This function was taken from ogLib and edited to ignore the 1px texture in the inventory.
@@ -178,9 +255,9 @@ begin
   funcTimeout.setTime(5000);
   repeat
     wait(250);
-  until (funcTimeout.isFinished()) or (login.hasLogin());
+  until (funcTimeout.isFinished()) or (self.hasLogin());
 
-  result := login.hasLogin();
+  result := self.hasLogin();
 end;
 
 function tMouse.clickAction(funcClickPoint: TPoint; funcAction: string): boolean
@@ -192,18 +269,18 @@ begin
 
   funcTimeout.setTime(1000);
   repeat
-    funcTooltip := mouse.getTooltip()
+    funcTooltip := self.getTooltip()
   until (funcTooltip <> '') or (funcTimeout.isFinished());
 
   if (funcTooltip <> '') then
   begin
     if (pos(funcAction, funcTooltip) <> 0) then
     begin
-      mouse.click(funcClickPoint);
+      self.click(funcClickPoint);
       result := true;
     end
     else
-      result := mouse.rightClickOption(funcClickPoint, funcAction, normalRandom(300, 650));
+      result := self.rightClickOption(funcClickPoint, funcAction, normalRandom(300, 650));
 
     exit(result);
   end;
@@ -298,7 +375,7 @@ var
   funcRemoteVersionNumbers, funcLocalVersionNumbers: TStringArray;
 begin
   if (funcUseProxy) and (pos('https://', funcUrl) <> 0) then
-    funcRemoteVersion := proxyRequest(funcUrl)
+    funcRemoteVersion := self.proxyRequest(funcUrl)
   else
     funcRemoteVersion := getPage(funcUrl);
 
@@ -320,7 +397,7 @@ var
   funcScript, funcFileName: string;
 begin
   if (funcUseProxy) and (pos('https://', funcUrl) <> 0) then
-    funcScript := proxyRequest(funcUrl)
+    funcScript := self.proxyRequest(funcUrl)
   else
     funcScript := getPage(funcUrl);
 

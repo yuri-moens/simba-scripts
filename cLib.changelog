@@ -1,3 +1,8 @@
+1.1.0
+=====
+  - Added handling of mysterious meteorites with the tAntiban.checkRandoms function.
+  - Changed some calls to using self instead of the variable.
+
 1.0.4
 =====
   - tBank.close will only attempt to close bank if bank is actually open.
