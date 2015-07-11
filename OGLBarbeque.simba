@@ -18,7 +18,8 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG: string = 'none';
-  VERSION: string = '2.0.0';
+  VERSION: string = '2.1.0';
+  METEORITE_SKILL = ATTACK;
 
 var
   clientCenter: tPoint;
@@ -107,6 +108,8 @@ begin
   if (canPrintProgress.isFinished()) then
     printProgress();
 
+  antiban.checkRandoms();
+
   if (hasMaxTemperature()) and (not eatIceCream()) then
   begin
     writeln('Reached max temperature and could not eat any more ice cream.');
@@ -137,9 +140,9 @@ begin
   writeln('[OGL] Barbeque v', VERSION, ' by ChaosEnergy');
   writeln('=========================================');
 
-  playerId := player.getId();
-
   try
+    antiban.setMeteoriteSkill(METEORITE_SKILL);
+    playerId := player.getId();
     startExperience := player.getExperience();
 
     repeat
