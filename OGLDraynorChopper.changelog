@@ -1,3 +1,7 @@
+2.1.0
+=====
+  - Added randoms checking.
+
 2.0.1
 =====
   - Fixed the calls to the walkToWillows and walkToBank functions.

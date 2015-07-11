@@ -22,7 +22,8 @@ const
   Description: Miscellaneous constants for the script. }
 const
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '2.0.1';
+  VERSION = '2.1.0';
+  METEORITE_SKILL = ATTACK;
 
 { const Object Model Constants:
   Description: Constants for various object models. Shouldn't be changed. }
@@ -31,7 +32,6 @@ const
   BANK_BOOTH_MODEL_IDS : tCardinalArray = [2697527608];
   WILLOW_MODEL_IDS : tCardinalArray = [2741093185, 3438012135, 135155099];
   BIRDS_NEST_IDS : tCardinalArray = [3295357347, 2974258964, 1860798043];
-  MYSTERIOUS_METEORITE_IDS : tCardinalArray = [1905798070, 3856085471];
 
 { const Object Texture Constants:
   Description: Constants for various object textures. Shouldn't be changed. }
@@ -39,13 +39,11 @@ const
   MINIMAP_FLAG_ID = 1275;
   BANK_ICON_ID = 45052;
   WILLOW_LOGS_ID = 116280;
-  SKILL_SELECTION_BOX_ID = 9900;
-  METEORITE_CONTINUE_BOX_ID = 91275;
 
 var
   clientCenter: tPoint;
   willowModels, nestModels, meteoriteModels: glModelArray;
-  canChopTree, canPickupMeteorite, canPickupNest, canWalk, canOpenBank,
+  canChopTree, canPickupNest, canWalk, canOpenBank,
     canDeposit, canPrintProgress, canGetExperience: tCountDown = 0;
   willowsCut, startExperience, playerId: integer;
   startTime: integer;
@@ -157,50 +155,6 @@ begin
   canDeposit.setTime(2000);
 end;
 
-function checkMeteorites: boolean;
-begin
-  meteoriteModels := ogl.getModels(MYSTERIOUS_METEORITE_IDS);
-  result := not meteoriteModels.isEmpty();
-end;
-
-procedure pickupMeteorite();
-var
-  funcTextures: glTextureArray;
-  funcClickPoint: tPoint;
-  funcTimeout: tCountDown;
-begin
-  wait(normalRandom(2500,  3000));
-  meteoriteModels := ogl.getModels(MYSTERIOUS_METEORITE_IDS); // the model moves so we need to get the updated location
-  funcClickPoint := clientCenter.closest(meteoriteModels)[0]
-    .randomizePointEllipse(13);
-
-  if (not ogl.getModels(MYSTERIOUS_METEORITE_IDS[0]).isEmpty()) then // take meteorite
-    mouse.clickAction(funcClickPoint, 'Take')
-  else // interact meteorite
-  begin
-    mouse.clickAction(funcClickPoint, 'Interact');
-
-    funcTimeout.setTime(normalRandom(7000, 9000));
-    repeat
-      wait(250);
-      funcTextures := ogl.getTextures(SKILL_SELECTION_BOX_ID);
-    until (not funcTextures.isEmpty()) or (funcTimeout.isFinished());
-
-    if (not funcTextures.isEmpty()) then
-    begin
-      funcClickPoint := clientCenter.closest(funcTextures)[0].randomizePointEllipse(7);
-      mouse.click(funcClickPoint);
-      wait(normalRandom(230, 330));
-      funcClickPoint := clientCenter.closest(ogl.getTextures(METEORITE_CONTINUE_BOX_ID))[0]
-        .randomizePointEllipse(7);
-      mouse.click(funcClickPoint);
-    end;
-  end;
-
-  canPickupMeteorite.setTime(normalRandom(180000, 190000));
-  canChopTree.setTime(normalRandom(4000, 6500));
-end;
-
 function checkNests: boolean;
 begin
   nestModels := ogl.getModels(BIRDS_NEST_IDS);
@@ -221,6 +175,8 @@ procedure mainLoop;
 var
   funcReaction: procedure() = @twiddleThumbs;
 begin
+  checkRandoms();
+
   if (isAtBank()) then
   begin
     if (inventory.isFull()) then
@@ -237,9 +193,7 @@ begin
   begin
     if (not inventory.isFull()) then
     begin
-      if (checkMeteorites()) and (canPickupMeteorite.isFinished()) then
-        funcReaction := @pickupMeteorite
-      else if (checkNests()) and (canPickupNest.isFinished()) then
+      if (checkNests()) and (canPickupNest.isFinished()) then
         funcReaction := @pickupNest
       else if (not player.isAnimating(playerId))
         and (checkTrees())
@@ -270,9 +224,10 @@ begin
   writeln('[OGL] Draynor Chopper v', VERSION, ' by ChaosEnergy');
   writeln('=========================================');
 
-  playerId := player.getId();
 
   try
+    antiban.setMeteoriteSkill(METEORITE_SKILL);
+    playerId := player.getId();
     startExperience := player.getExperience();
 
     repeat
