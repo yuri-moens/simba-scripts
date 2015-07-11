@@ -49,10 +49,11 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '2.2.1';
+  VERSION = '2.3.0';
   ALERT_FLAG = false;
   ALERT_KEYWORD = 'Username';
   ALERT_SOUND = 'C:\Simba\sound.wav';
+  METEORITE_SKILL = ATTACK;
 
 var
   clientCenter: tPoint;
@@ -140,9 +141,10 @@ begin
   until (production.hasProduction()) or (funcTimeout.isFinished());
 
   if (production.hasProduction()) then
+  begin
     typeSend('3', false);
-
-  canAddToFire.setTime(4000);
+    canAddToFire.setTime(4000);
+  end;
 end;
 
 procedure startFire;
@@ -193,6 +195,8 @@ procedure mainLoop
 var
   funcReaction: procedure() = @twiddleThumbs;
 begin
+  antiban.checkRandoms();
+
   if (shouldBank()) then
   begin
     if (not bank.hasBank()) then
@@ -224,6 +228,7 @@ begin
   startTime := getSystemTime();
   ogl.setDebugMode(GLX_DEBUG);
   cLib.selfUpdate();
+  antiban.setMeteoriteSkill(METEORITE_SKILL);
 
   if (not web.isUpToDate(VERSION, 'https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLBonfire.version')) then
     web.update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLBonfire.version', 'OGLBonfire');
