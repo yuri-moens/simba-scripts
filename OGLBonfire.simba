@@ -17,28 +17,28 @@ program OGLBonfire;
   Setup
   =====
   1. Bank preset 1 should be a full inventory of your logs.
-  2. The log of your choice should be in slot 3 of your active action bar. }
+  2. The log of your choice should be on your active action bar. }
 
 type
   tLog = record
-    id, cid, bankCid: integer;
+    id, cid, bankCid, actionBarId: integer;
   end;
 
 { const Log Constants;
   Description: Constants for the different types of logs. }
 const
-  NORMAL_LOG : tLog = [116280, 3089172, 3221015];
-  OAK_lOG : tLog = [116280, 4141084, 4338207];
-  WILLOW_LOG : tLog = [116280, 2301967, 2433553];
-  MAPLE_LOG : tLog = [116280, 3022601, 3219980];
-  YEW_LOG : tLog = [116280, 2431752, 2694666];
-  MAGIC_LOG : tLog = [122910, 3947820, 4145199];
-  ELDER_LOG : tLog = [118575, 3616291, 3747877];
+  NORMAL_LOG : tLog = [116280, 3089172, 3221015, 103530];
+  OAK_lOG : tLog = [116280, 4141084, 4338207, 103530];
+  WILLOW_LOG : tLog = [116280, 2301967, 2433553, 103530];
+  MAPLE_LOG : tLog = [116280, 3022601, 3219980, 103530];
+  YEW_LOG : tLog = [116280, 2431752, 2694666, 103530];
+  MAGIC_LOG : tLog = [122910, 3947820, 4145199, 110160];
+  ELDER_LOG : tLog = [118575, 3616291, 3747877, 105825];
   ALL_LOGS : tCardinalArray = [116280, 122910, 118575];
   LOG_TYPE : tLog = MAPLE_LOG; // change me
 
 { Script Constants;
-  Description: Constants specific to thie script. }
+  Description: Constants specific to the script. }
 const
   FIRES : tCardinalArray = [2057907316, 653711928];
   FIRE_SPIRIT = 1920637384;
@@ -49,14 +49,15 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '2.3.0';
+  VERSION = '2.3.1';
   ALERT_FLAG = false;
   ALERT_KEYWORD = 'Username';
   ALERT_SOUND = 'C:\Simba\sound.wav';
-  METEORITE_SKILL = ATTACK;
+  METEORITE_SKILL = FIREMAKING;
 
 var
   clientCenter: tPoint;
+  logActionBar: char;
   startTime, startExperience, logsBurnt, playerId: integer;
   canAddToFire, canClickFireSpirit, canPrintProgress, canAlert: tCountDown;
 
@@ -98,6 +99,11 @@ begin
   end;
 end;
 
+procedure setupActionBarVariable();
+begin
+  logActionBar := actionBar.getActionKey(LOG_TYPE.actionBarId);
+end;
+
 function shouldBank: boolean;
 begin
   result := (inventory.getItems(LOG_TYPE.id, LOG_TYPE.cid).indexes() = 0);
@@ -133,7 +139,7 @@ procedure addToFire;
 var
   funcTimeout: tCountDown;
 begin
-  typeSend('3', false);
+  typeSend(logActionBar, false);
 
   funcTimeout.setTime(2000);
   repeat
@@ -142,7 +148,7 @@ begin
 
   if (production.hasProduction()) then
   begin
-    typeSend('3', false);
+    typeSend(logActionBar, false);
     canAddToFire.setTime(4000);
   end;
 end;
@@ -151,7 +157,7 @@ procedure startFire;
 var
   funcTimeout: tCountDown;
 begin
-  typeSend('3', false);
+  typeSend(logActionBar, false);
 
   funcTimeout.setTime(2000);
   repeat
@@ -228,7 +234,6 @@ begin
   startTime := getSystemTime();
   ogl.setDebugMode(GLX_DEBUG);
   cLib.selfUpdate();
-  antiban.setMeteoriteSkill(METEORITE_SKILL);
 
   if (not web.isUpToDate(VERSION, 'https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLBonfire.version')) then
     web.update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLBonfire.version', 'OGLBonfire');
@@ -236,10 +241,11 @@ begin
   writeln('[OGL] Bonfire v', VERSION, ' by ChaosEnergy');
   writeln('=========================================');
 
-  playerId := player.getId();
-
   try
+    playerId := player.getId();
+    antiban.setMeteoriteSkill(METEORITE_SKILL);
     startExperience := player.getExperience();
+    setupActionBarVariable();
 
     repeat
       mainLoop;

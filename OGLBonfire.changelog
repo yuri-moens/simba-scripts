@@ -1,3 +1,8 @@
+2.3.1
+=====
+  - Log can now be put on any action bar slot.
+  - Changed default meteorite skill to firemaking.
+
 2.3.0
 =====
   - Added randoms checking.
