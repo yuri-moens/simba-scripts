@@ -1,0 +1,262 @@
+program OGLFletcher;
+{$i cLib.simba}
+
+{ This script requires ogLib. Learn how to set it up correctly here:
+  https://villavu.com/forum/showthread.php?t=112486
+
+  This script also requires cLib. Learn how to set it up correctly here:
+  https://villavu.com/forum/showthread.php?t=113750
+
+  Make sure to set your game window to 'Resizable' and your interface to the
+  RuneScape 3 default. Also turn on 'Show XP tracker' at the Interface settings.
+
+  Setup the script at lines 44-46, setup alerting, screen-size and debug options at lines 51-57.
+
+  Setup
+  =====
+  1. Bank preset 1 should be a full inventory of your logs, 14 logs + 14 bowstrings or 14 unstrung bows + 14 bowstrings, depending on what you want to do.
+  2. Make sure the log and/or bowstring (depending on what you want to do) is on the action bar. }
+
+type
+  tLog = record
+    id, cid, bankCid, actionBarId: integer;
+  end;
+
+{ const Script Constants;
+  Description: Constants necessary for the script to work. Should not be changed. }
+const
+  NORMAL_LOG : tLog = [116280, 3089172, 3221015, 103530];
+  OAK_lOG : tLog = [116280, 4141084, 4338207, 103530];
+  WILLOW_LOG : tLog = [116280, 2301967, 2433553, 103530];
+  MAPLE_LOG : tLog = [116280, 3022601, 3219980, 103530];
+  YEW_LOG : tLog = [116280, 2431752, 2694666, 103530];
+  MAGIC_LOG : tLog = [122910, 3947820, 4145199, 110160];
+  ELDER_LOG : tLog = [118575, 3616291, 3747877, 105825];
+  ALL_LOGS : tCardinalArray = [116280, 122910, 118575];
+  BOWSTRING: tCardinalArray = [69105, 920843, 43095]; // id, cid, actionBarId
+  CUTTING = 1;
+  STRINGING = 2;
+  CUTTING_STRINGING = 3;
+
+{ const User Constants;
+  Description: Change these to your own preference. }
+const
+  ACTION = CUTTING_STRINGING; // options: CUTTING, STRINGING, CUTTING_STRINGING
+  LOG_TYPE : tLog = YEW_LOG; // options: see Script Constants, only required for CUTTING and CUTTING_STRINGING
+  METEORITE_SKILL = FLETCHING; // options: see constants in the cLib include
+
+{ const Misc Constants;
+  Description: Miscellaneous constants for the script. }
+const
+  WIDTH = 1440;
+  HEIGHT = 900;
+  GLX_DEBUG = 'none'; // options: none, models, textures, fonts
+  VERSION = '1.0.0';
+  ALERT_FLAG = false;
+  ALERT_KEYWORD = 'Username';
+  ALERT_SOUND = 'C:\Simba\sound.wav';
+
+var
+  clientCenter: tPoint;
+  logActionBar, stringActionBar: char;
+  startTime, startExperience, logsCut, bowsStrung, playerId: integer;
+  canPrintProgress, canDeposit, canOpenProduction, canStartProduction, canAlert: tCountDown;
+
+procedure printProgress();
+var
+  elapsedTime: integer;
+  hours: double;
+  minutes: double;
+  gainedExperience: integer;
+begin
+  elapsedTime := getSystemTime() - startTime;
+  hours := elapsedTime / 3600000;
+  minutes := floor(elapsedTime / 60000) mod 60;
+  gainedExperience := player.getExperience() - startExperience;
+
+  writeln('Running for: ', floor(hours), 'h ', minutes, 'm');
+  if (ACTION = CUTTING) or (ACTION = CUTTING_STRINGING) then
+  begin
+    writeln('Logs cut: ', logsCut);
+    writeln('Logs cut per hour: ', floor(logsCut / hours));
+  end;
+  if (ACTION = STRINGING) or (ACTION = CUTTING_STRINGING) then
+  begin
+    writeln('Bows strung: ', bowsStrung);
+    writeln('Bows strung per hour: ', floor(bowsStrung / hours));
+  end;
+  writeln('Experience earned: ', gainedExperience);
+  writeln('Experience per hour: ', floor(gainedExperience / hours));
+  writeln('=========================================');
+
+  canPrintProgress.setTime(15000);
+end;
+
+procedure twiddleThumbs;
+begin
+  if ALERT_FLAG and canAlert.isFinished() then
+  begin
+    if antiban.alert(ALERT_KEYWORD) then
+    begin
+      playSound(ALERT_SOUND);
+      canAlert.setTime(30000);
+    end;
+  end;
+
+  antiban.checkRandoms();
+
+  case random(533) of
+    1: antiban.rotateCamera(342, 11, 4);
+  end;
+end;
+
+procedure setupActionBarVariables();
+begin
+  case ACTION of
+    CUTTING: logActionBar := actionBar.getActionKey(LOG_TYPE.actionBarId);
+    STRINGING: stringActionBar := actionBar.getActionKey(BOWSTRING[2]);
+    CUTTING_STRINGING: begin
+      logActionBar := actionBar.getActionKey(LOG_TYPE.actionBarId);
+      stringActionBar := actionBar.getActionKey(BOWSTRING[2]);
+    end;
+  end;
+end;
+
+function shouldDeposit: boolean;
+begin
+  case ACTION of
+    CUTTING: result := ((inventory.getItemCount() <> 0) and (inventory.getItems(LOG_TYPE.id, LOG_TYPE.cid).indexes() = 0));
+    STRINGING, CUTTING_STRINGING: result := ((inventory.getItemCount() <> 0) and (inventory.getItems(BOWSTRING[0]).indexes() = 0));
+  end;
+end;
+
+procedure depositItems;
+begin
+  case ACTION of
+    CUTTING: logsCut := logsCut + 28;
+    STRINGING: bowsStrung := bowsStrung + 14;
+    CUTTING_STRINGING: begin
+      logsCut := logsCut + 14;
+      bowsStrung := bowsStrung + 14;
+    end;
+  end;
+
+  if (canPrintProgress.isFinished()) then
+  begin
+    printProgress();
+  end;
+
+  bank.clickDepositCarriedItems();
+  wait(normalRandom(400, 800));
+  canDeposit.setTime(normalRandom(1500, 2500));
+end;
+
+procedure withdrawItems;
+begin
+  bank.clickPreset(1);
+
+  wait(normalRandom(330, 590));
+
+  bank.close();
+
+  wait (normalRandom(300, 600));
+end;
+
+function shouldProduce: boolean;
+begin
+  case ACTION of
+    CUTTING: result := inventory.getItems(LOG_TYPE.id, LOG_TYPE.cid).indexes() <> 0;
+    STRINGING, CUTTING_STRINGING: result := inventory.getItems(BOWSTRING[0]).indexes() <> 0;
+  end;
+end;
+
+function isInProduction: boolean;
+begin
+  case ACTION of
+    CUTTING: result := (production.hasProduction()) and (inventory.getItems(LOG_TYPE.id, LOG_TYPE.cid).indexes() <> 0);
+    STRINGING, CUTTING_STRINGING: result := (production.hasProduction()) and (inventory.getItems(BOWSTRING[0]).indexes() <> 0);
+  end;
+end;
+
+procedure openProduction;
+begin
+  case ACTION of
+    CUTTING: typeSend(logActionBar, false);
+    CUTTING_STRINGING: begin
+      if (inventory.getItems(LOG_TYPE.id, LOG_TYPE.cid).indexes() = 0) then
+        typeSend(stringActionBar, false)
+      else
+        typeSend(logActionBar, false);
+    end;
+    STRINGING: typeSend(stringActionBar, false);
+  end;
+
+  canOpenProduction.setTime(normalRandom(1000, 2000));
+end;
+
+procedure chooseProductionTool;
+begin
+  typeSend('2', false);
+end;
+
+procedure startProduction;
+begin
+  typeByte(VK_SPACE);
+  canStartProduction.setTime(normalRandom(700, 1200));
+end;
+
+procedure mainLoop
+var
+  funcReaction: procedure() = @twiddleThumbs;
+begin
+  if (shouldProduce()) then
+  begin
+    if (not isInProduction()) and (canOpenProduction.isFinished()) then
+      funcReaction := @openProduction
+    else if (production.hasProduction()) and (not production.hasProgress()) and (canStartProduction.isFinished()) then
+      funcReaction := @startProduction
+    else if (production.hasChooseATool()) then
+      funcReaction := @chooseProductionTool;
+  end
+  else
+  begin
+    if (not bank.hasBank()) then
+      bank.open()
+    else if (bank.hasBank()) and (shouldDeposit()) then
+      funcReaction := @depositItems
+    else if (bank.hasBank()) and (inventory.getItemCount() = 0) then
+      funcReaction := @withdrawItems;
+  end;
+
+  funcReaction();
+end;
+
+begin
+  ogl.setup(WIDTH, HEIGHT);
+  clientCenter := ogl.getClientMidPoint();
+  startTime := getSystemTime();
+  ogl.setDebugMode(GLX_DEBUG);
+  cLib.selfUpdate();
+
+  if (not web.isUpToDate(VERSION, 'https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLFletcher.version')) then
+    web.update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLFletcher.version', 'OGLFletcher');
+
+  writeln('[OGL] Fletcher v', VERSION, ' by ChaosEnergy');
+  writeln('=========================================');
+
+  try
+    playerId := player.getId();
+    antiban.setMeteoriteSkill(METEORITE_SKILL);
+    startExperience := player.getExperience();
+    setupActionBarVariables();
+
+    repeat
+      mainLoop;
+      wait(normalRandom(220, 670));
+    until false;
+  except
+    writeln('Oops! It appears I have crashed.');
+    login.logout();
+    terminateScript();
+  end;
+end.
