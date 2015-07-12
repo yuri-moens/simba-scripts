@@ -1,0 +1,166 @@
+program OGLAlcher;
+{$i cLib.simba}
+
+{ This script requires ogLib. Learn how to set it up correctly here:
+  https://villavu.com/forum/showthread.php?t=112486
+
+  This script also requires cLib. Learn how to set it up correctly here:
+  https://villavu.com/forum/showthread.php?t=113750
+
+  Make sure to set your game window to 'Resizable' and your interface to the
+  RuneScape 3 default. Also turn on 'Show XP tracker' at the Interface settings.
+
+  Setup the script at lines 28-31, setup alerting, screen-size and debug options at lines 36-42.
+
+  Setup
+  =====
+  1. Make sure the preferred alchemy spell is on your action bar. }
+
+{ const Script Constants;
+  Description: Constants necessary for the script to work. Should not be changed. }
+const
+  LOW_ALCH = 64692;
+  HIGH_ALCH = 79489;
+
+{ const User Constants;
+  Description: Change these to your own preference. }
+const
+  ALCH_TYPE = HIGH_ALCH; // options: LOW_ALCH or HIGH_ALCH
+  ITEM_SLOT = 1;
+  AMOUNT_OF_ALCHES = 1911;
+  METEORITE_SKILL = MAGIC;
+
+{ const Misc Constants;
+  Description: Miscellaneous constants for the script. }
+const
+  WIDTH = 1440;
+  HEIGHT = 900;
+  GLX_DEBUG = 'none'; // options: none, models, textures, fonts
+  VERSION = '1.0.0';
+  ALERT_FLAG = false;
+  ALERT_KEYWORD = 'Username';
+  ALERT_SOUND = 'C:\Simba\sound.wav';
+
+var
+  clientCenter, itemPoint: tPoint;
+  alchActionBar: char;
+  startTime, startExperience, playerId, alchCasts, clickCount, clickMax: integer;
+  canPrintProgress, canAlert, canAlch: tCountDown;
+
+procedure printProgress();
+var
+  elapsedTime: integer;
+  hours: double;
+  minutes: double;
+  gainedExperience: integer;
+begin
+  elapsedTime := getSystemTime() - startTime;
+  hours := elapsedTime / 3600000;
+  minutes := floor(elapsedTime / 60000) mod 60;
+  gainedExperience := player.getExperience() - startExperience;
+
+  writeln('Running for: ', floor(hours), 'h ', minutes, 'm');
+  writeln('Alch casts: ', alchCasts);
+  writeln('Alch casts per hour: ', floor(alchCasts / hours));
+  writeln('Experience earned: ', gainedExperience);
+  writeln('Experience per hour: ', floor(gainedExperience / hours));
+  writeln('=========================================');
+
+  canPrintProgress.setTime(60000);
+end;
+
+procedure twiddleThumbs;
+begin
+  if ALERT_FLAG and canAlert.isFinished() then
+  begin
+    if antiban.alert(ALERT_KEYWORD) then
+    begin
+      playSound(ALERT_SOUND);
+      canAlert.setTime(30000);
+    end;
+  end;
+
+  antiban.checkRandoms();
+
+  case random(533) of
+    1: antiban.rotateCamera(342, 11, 4);
+  end;
+end;
+
+procedure setupActionBarVariable();
+begin
+  alchActionBar := actionBar.getActionKey(ALCH_TYPE);
+end;
+
+function isDone(): boolean;
+begin
+  result := alchCasts >= AMOUNT_OF_ALCHES;
+end;
+
+procedure alch();
+begin
+  typeSend(alchActionBar, false);
+
+  if (clickMax = 0) or (clickCount = clickMax) then
+  begin
+    itemPoint := inventory.getSlot(ITEM_SLOT - 1).randomizePointEllipse(20);
+    clickMax := normalRandom(200, 1200);
+  end;
+
+  wait(normalRandom(0, 250));
+
+  mouse.click(itemPoint);
+  clickCount := clickCount + 1;
+  alchCasts := alchCasts + 1;
+  canAlch.setTime(normalRandom(2900, 3200));
+end;
+
+procedure mainLoop();
+var
+  funcReaction: procedure() = @twiddleThumbs;
+begin
+  if (isDone()) then
+  begin
+    writeln('Finished alching ', AMOUNT_OF_ALCHES, ' items.');
+    writeln('Logging out...');
+    login.logout();
+    terminateScript();
+  end;
+
+  if (canAlch.isFinished()) and (not player.isAnimating(playerId)) then
+    funcReaction := @alch
+  else if (canPrintProgress.isFinished()) then
+    funcReaction := @printProgress;
+
+  funcReaction();
+end;
+
+begin
+  ogl.setup(WIDTH, HEIGHT);
+  clientCenter := ogl.getClientMidPoint();
+  startTime := getSystemTime();
+  ogl.setDebugMode(GLX_DEBUG);
+  cLib.selfUpdate();
+
+  if (not web.isUpToDate(VERSION, 'https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLAlcher.version')) then
+    web.update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLAlcher.version', 'OGLAlcher');
+
+  writeln('[OGL] Alcher v', VERSION, ' by ChaosEnergy');
+  writeln('=========================================');
+
+  try
+    antiban.setMeteoriteSkill(METEORITE_SKILL);
+    playerId := player.getId();
+    startExperience := player.getExperience();
+    setupActionBarVariable();
+
+    repeat
+      mainLoop;
+      wait(normalRandom(220, 670));
+    until false;
+  except
+    writeln('Oops! It appears I have crashed.');
+    login.logout();
+    terminateScript();
+  end;
+end.
