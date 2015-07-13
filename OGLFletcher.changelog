@@ -1,3 +1,7 @@
+1.0.2
+=====
+  - Optimized banking, previous optimization could cause unnecessary 3 second waits.
+
 1.0.1
 =====
   - Optimized banking by getting rid of unnecessary actions.

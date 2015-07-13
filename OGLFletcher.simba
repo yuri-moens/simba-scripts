@@ -52,7 +52,7 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '1.0.1';
+  VERSION = '1.0.2';
   ALERT_FLAG = false;
   ALERT_KEYWORD = 'Username';
   ALERT_SOUND = 'C:\Simba\sound.wav';
@@ -124,8 +124,10 @@ begin
 end;
 
 procedure handleBank;
+var
+  funcTimeout: tCountDown;
 begin
-  if (inventory.isFull()) then
+  if (inventory.getItemCount() <> 0) and (canPrintProgress.isFinished()) then
   begin
     case ACTION of
       CUTTING: logsCut := logsCut + 28;
@@ -135,16 +137,20 @@ begin
         bowsStrung := bowsStrung + 14;
       end;
     end;
-  end;
 
-  if (canPrintProgress.isFinished()) then
-  begin
     printProgress();
   end;
 
-  typeSend(PRESET_SLOT);
+  while (bank.hasBank()) do
+  begin
+    typeSend(PRESET_SLOT, false);
 
-  wait (normalRandom(500, 800));
+    funcTimeout.setTime(1400);
+    repeat
+      wait(200);
+    until (funcTimeout.isFinished()) or (not bank.hasBank());
+  end;
+
   canHandleBank.setTime(3000);
 end;
 
