@@ -10,11 +10,11 @@ program OGLFletcher;
   Make sure to set your game window to 'Resizable' and your interface to the
   RuneScape 3 default. Also turn on 'Show XP tracker' at the Interface settings.
 
-  Setup the script at lines 44-46, setup alerting, screen-size and debug options at lines 51-57.
+  Setup the script at lines 44-47, setup alerting, screen-size and debug options at lines 52-58.
 
   Setup
   =====
-  1. Bank preset 1 should be a full inventory of your logs, 14 logs + 14 bowstrings or 14 unstrung bows + 14 bowstrings, depending on what you want to do.
+  1. Bank preset should be a full inventory of your logs, 14 logs + 14 bowstrings or 14 unstrung bows + 14 bowstrings, depending on what you want to do.
   2. Make sure the log and/or bowstring (depending on what you want to do) is on the action bar. }
 
 type
@@ -44,6 +44,7 @@ const
   ACTION = CUTTING_STRINGING; // options: CUTTING, STRINGING, CUTTING_STRINGING
   LOG_TYPE : tLog = YEW_LOG; // options: see Script Constants, only required for CUTTING and CUTTING_STRINGING
   METEORITE_SKILL = FLETCHING; // options: see constants in the cLib include
+  PRESET_SLOT = '1'; // options: 1, 2
 
 { const Misc Constants;
   Description: Miscellaneous constants for the script. }
@@ -51,7 +52,7 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '1.0.0';
+  VERSION = '1.0.1';
   ALERT_FLAG = false;
   ALERT_KEYWORD = 'Username';
   ALERT_SOUND = 'C:\Simba\sound.wav';
@@ -60,7 +61,7 @@ var
   clientCenter: tPoint;
   logActionBar, stringActionBar: char;
   startTime, startExperience, logsCut, bowsStrung, playerId: integer;
-  canPrintProgress, canDeposit, canOpenProduction, canStartProduction, canAlert: tCountDown;
+  canPrintProgress, canHandleBank, canOpenProduction, canStartProduction, canAlert: tCountDown;
 
 procedure printProgress();
 var
@@ -122,22 +123,17 @@ begin
   end;
 end;
 
-function shouldDeposit: boolean;
+procedure handleBank;
 begin
-  case ACTION of
-    CUTTING: result := ((inventory.getItemCount() <> 0) and (inventory.getItems(LOG_TYPE.id, LOG_TYPE.cid).indexes() = 0));
-    STRINGING, CUTTING_STRINGING: result := ((inventory.getItemCount() <> 0) and (inventory.getItems(BOWSTRING[0]).indexes() = 0));
-  end;
-end;
-
-procedure depositItems;
-begin
-  case ACTION of
-    CUTTING: logsCut := logsCut + 28;
-    STRINGING: bowsStrung := bowsStrung + 14;
-    CUTTING_STRINGING: begin
-      logsCut := logsCut + 14;
-      bowsStrung := bowsStrung + 14;
+  if (inventory.isFull()) then
+  begin
+    case ACTION of
+      CUTTING: logsCut := logsCut + 28;
+      STRINGING: bowsStrung := bowsStrung + 14;
+      CUTTING_STRINGING: begin
+        logsCut := logsCut + 14;
+        bowsStrung := bowsStrung + 14;
+      end;
     end;
   end;
 
@@ -146,20 +142,10 @@ begin
     printProgress();
   end;
 
-  bank.clickDepositCarriedItems();
-  wait(normalRandom(400, 800));
-  canDeposit.setTime(normalRandom(1500, 2500));
-end;
+  typeSend(PRESET_SLOT);
 
-procedure withdrawItems;
-begin
-  bank.clickPreset(1);
-
-  wait(normalRandom(330, 590));
-
-  bank.close();
-
-  wait (normalRandom(300, 600));
+  wait (normalRandom(500, 800));
+  canHandleBank.setTime(3000);
 end;
 
 function shouldProduce: boolean;
@@ -222,10 +208,8 @@ begin
   begin
     if (not bank.hasBank()) then
       bank.open()
-    else if (bank.hasBank()) and (shouldDeposit()) then
-      funcReaction := @depositItems
-    else if (bank.hasBank()) and (inventory.getItemCount() = 0) then
-      funcReaction := @withdrawItems;
+    else if (bank.hasBank()) and (canHandleBank.isFinished()) then
+      funcReaction := @handleBank;
   end;
 
   funcReaction();

@@ -1,3 +1,7 @@
+1.0.1
+=====
+  - Optimized banking by getting rid of unnecessary actions.
+
 1.0.0
 =====
   - Release
