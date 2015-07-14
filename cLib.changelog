@@ -1,3 +1,9 @@
+1.1.3
+=====
+  - Renamed tAntiban.doMeteorite() to tAntiban.investigateMeteorite().
+  - Meteorite investigation now has a timeout when it failed so it doesn't keep trying and interrupt the script.
+  - tMouse.getTooltip() has been fixed as it wasn't getting the tooltip after a zone change or relog.
+
 1.1.2
 =====
   - Logging out as a free to play character should no longer open the subscription popup.
