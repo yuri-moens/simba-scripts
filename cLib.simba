@@ -1,7 +1,7 @@
 {$include_once ogLib/lib/core/core.simba}
 
 const
-  CLIB_VERSION : string = '1.1.1';
+  CLIB_VERSION : string = '1.1.2';
 
 type tAntiban = record
   __: boolean;
@@ -255,21 +255,24 @@ end;
 
 function tLogin.logout(): boolean;
 var
+  funcClientCenter: tPoint;
   funcBounds: tBox;
   funcTimeout: tCountDown;
   funcTextures: glTextureArray;
 begin
   funcBounds := [ogl.getClientWidth() - 10, 0, ogl.getClientWidth(), 10];
+  funcClientCenter := ogl.getClientMidPoint();
 
   mouse.click(funcBounds);
+  funcBounds := [funcClientCenter.x - 200, funcClientCenter.y - 150, funcClientCenter.x + 200, funcClientCenter.y + 150];
 
   funcTimeout.setTime(5000);
   repeat
-    funcTextures := ogl.getTextures(91275, 12483092);
+    funcTextures := ogl.getTextures(91275, 12483092, funcBounds);
   until (not funcTextures.isEmpty()) or (funcTimeout.isFinished());
 
   if (not funcTextures.isEmpty()) then
-    mouse.click(ogl.getClientMidPoint().closest(funcTextures)[0].randomizePointEllipse(15));
+    mouse.click(funcClientCenter.closest(funcTextures)[0].randomizePointEllipse(15));
 
   funcTimeout.setTime(5000);
   repeat

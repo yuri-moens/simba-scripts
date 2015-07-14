@@ -1,3 +1,7 @@
+1.1.2
+=====
+  - Logging out as a free to play character should no longer open the subscription popup.
+
 1.1.1
 =====
   - Investigating meteorites shouldn't crash the entire script anymore.
