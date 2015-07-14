@@ -1,3 +1,8 @@
+1.1.1
+=====
+  - Investigating meteorites shouldn't crash the entire script anymore.
+  - Player will walk back to the previous location after investigating the meteorite.
+
 1.1.0
 =====
   - Added handling of mysterious meteorites with the tAntiban.checkRandoms function.
