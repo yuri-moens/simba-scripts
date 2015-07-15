@@ -10,11 +10,16 @@ program OGLAlcher;
   Make sure to set your game window to 'Resizable' and your interface to the
   RuneScape 3 default. Also turn on 'Show XP tracker' at the Interface settings.
 
-  Setup the script at lines 28-31, setup alerting, screen-size and debug options at lines 36-42.
+  Setup the script at lines 33-36, setup alerting, screen-size and debug options at lines 41-47.
 
   Setup
   =====
   1. Make sure the preferred alchemy spell is on your action bar. }
+
+type
+  tAlchTask = record
+    slot, amount: integer;
+  end;
 
 { const Script Constants;
   Description: Constants necessary for the script to work. Should not be changed. }
@@ -26,8 +31,8 @@ const
   Description: Change these to your own preference. }
 const
   ALCH_TYPE = HIGH_ALCH; // options: LOW_ALCH or HIGH_ALCH
-  ITEM_SLOT = 1;
-  AMOUNT_OF_ALCHES = 1911;
+  ALCH_TASKS : array[0..0] of tAlchTask = [[1, 1911]]; // add more tasks between the square brackets like so: [slot, amount], don't forget to update array[0..0] to 0..1 as well (or 0..2, 0..3, ... depending on the amount of tasks)
+  // an example for alching 100 items in slot 1 and 200 in slot 2: ALCH_TASKS : array[0..1] of tAlchTask = [[1, 100], [2, 200]];
   METEORITE_SKILL = MAGIC;
 
 { const Misc Constants;
@@ -36,7 +41,7 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '1.0.1';
+  VERSION = '1.1.0';
   ALERT_FLAG = false;
   ALERT_KEYWORD = 'Username';
   ALERT_SOUND = 'C:\Simba\sound.wav';
@@ -44,7 +49,7 @@ const
 var
   clientCenter, itemPoint: tPoint;
   alchActionBar: char;
-  startTime, startExperience, playerId, alchCasts, clickCount, clickMax: integer;
+  startTime, startExperience, playerId, alchCasts, clickCount, clickMax, taskIndex: integer;
   canPrintProgress, canAlert, canAlch: tCountDown;
 
 procedure printProgress();
@@ -97,7 +102,7 @@ end;
 
 function isDone(): boolean;
 begin
-  result := alchCasts >= AMOUNT_OF_ALCHES;
+  result := alchCasts >= ALCH_TASKS[taskIndex].amount;
 end;
 
 procedure alch();
@@ -106,7 +111,7 @@ begin
 
   if (clickMax = 0) or (clickCount = clickMax) then
   begin
-    itemPoint := inventory.getSlot(ITEM_SLOT - 1).randomizePointEllipse(20);
+    itemPoint := inventory.getSlot(ALCH_TASKS[taskIndex].slot - 1).randomizePointEllipse(28);
     clickMax := normalRandom(200, 1200);
   end;
 
@@ -115,7 +120,7 @@ begin
   mouse.click(itemPoint);
   clickCount := clickCount + 1;
   alchCasts := alchCasts + 1;
-  canAlch.setTime(normalRandom(2900, 3200));
+  canAlch.setTime(normalRandom(2600, 3100));
 end;
 
 procedure mainLoop();
@@ -124,10 +129,21 @@ var
 begin
   if (isDone()) then
   begin
-    writeln('Finished alching ', AMOUNT_OF_ALCHES, ' items.');
-    writeln('Logging out...');
-    login.logout();
-    terminateScript();
+    writeln('Finished alching ', ALCH_TASKS[taskIndex].amount, ' items in slot ', ALCH_TASKS[taskIndex].slot, '.');
+
+    if (taskIndex = length(ALCH_TASKS) - 1) then
+    begin
+      writeln('Logging out...');
+      login.logout();
+      terminateScript();
+    end
+    else
+    begin
+      inc(taskIndex);
+      alchCasts := 0;
+      clickCount := 0;
+      clickMax := 0;
+    end;
   end;
 
   if (canAlch.isFinished()) and (not player.isAnimating(playerId)) then
