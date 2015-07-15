@@ -1,7 +1,7 @@
 {$include_once ogLib/lib/core/core.simba}
 
 const
-  CLIB_VERSION : string = '1.1.4';
+  CLIB_VERSION : string = '1.2.0';
 
 type tAntiban = record
   __: boolean;
@@ -297,6 +297,11 @@ begin
   result := self.hasLogin();
 end;
 
+function tMinimap.hasFlag(): boolean;
+begin
+  result := not ogl.getTextures(1275).isEmpty();
+end;
+
 function tMouse.clickAction(funcClickPoint: TPoint; funcAction: string): boolean
 var
   funcTimeout: tCountDown;
@@ -434,13 +439,73 @@ begin
   result := not funcIconTextures.isEmpty();
 end;
 
-procedure tWalking.walkToRelativePoint(funcRandomX1: integer = 2;
-                      funcRandomX2: integer = 2;
-                      funcRandomY1: integer = 2;
-                      funcRandomY2: integer = 2);
+procedure tWalking.walkToLocalPoint(funcTargetPoint: tPoint; funcRandom: integer = 2);
+var
+  funcStartPoint: tPoint;
+begin
+  funcStartPoint := minimap.getLocalPosition();
+  self.walkToRelativePoint(funcTargetPoint.x - funcStartPoint.x, funcTargetPoint.y - funcStartPoint.y, funcRandom);
+end;
+
+procedure tWalking.walkToLocalPoints(funcTargetPoints: tPointArray; funcRandom: integer = 2);
+var
+  i: integer;
+  funcTimeout: tCountDown;
+begin
+  for i := 0 to length(funcTargetPoints) do
+  begin
+    self.walkToLocalPoint(funcTargetPoints[i], funcRandom);
+
+    funcTimeout.setTime(normalRandom(1500, 2500));
+    repeat
+      wait(normalRandom(100, 250));
+    until (funcTimeout.isFinished()) or (minimap.hasFlag());
+
+    funcTimeout.setTime(normalRandom(9000, 11000));
+    repeat
+      wait(normalRandom(100, 250));
+    until (funcTimeout.isFinished()) or (not minimap.hasFlag());
+  end;
+end;
+
+procedure tWalking.walkToRelativePoint(funcLowX: integer;
+                      funcHighX: integer;
+                      funcLowY: integer;
+                      funcHighY: integer);
 begin
   mouse.click(minimap.getScreenPosition(minimap.getLocalPosition()
-    .adjustPosition(normalRandom(funcRandomX1, funcRandomX2), normalRandom(funcRandomY1, funcRandomY2))), 1);
+    .adjustPosition(normalRandom(funcLowX, funcHighX), normalRandom(funcLowY, funcHighY))));
+end;
+
+procedure tWalking.walkToRelativePoint(funcX, funcY: integer; funcRandom: integer = 2); overload;
+begin
+  self.walkToRelativePoint(funcX - funcRandom, funcX + funcRandom, funcY - funcRandom, funcY + funcRandom);
+end;
+
+procedure tWalking.walkToRelativePoint(funcTargetPoint: tPoint; funcRandom: integer = 2); overload;
+begin
+  self.walkToRelativePoint(funcTargetPoint.x, funcTargetPoint.y, funcRandom);
+end;
+
+procedure tWalking.walkToRelativePoints(funcTargetPoints: tPointArray; funcRandom: integer = 2);
+var
+  i: integer;
+  funcTimeout: tCountDown;
+begin
+  for i := 0 to length(funcTargetPoints) do
+  begin
+    self.walkToRelativePoint(funcTargetPoints[i], funcRandom);
+
+    funcTimeout.setTime(normalRandom(1500, 2500));
+    repeat
+      wait(normalRandom(100, 250));
+    until (funcTimeout.isFinished()) or (minimap.hasFlag());
+
+    funcTimeout.setTime(normalRandom(9000, 11000));
+    repeat
+      wait(normalRandom(100, 250));
+    until (funcTimeout.isFinished()) or (not minimap.hasFlag());
+  end;
 end;
 
 function tWeb.proxyRequest(funcUrl: string): string;
