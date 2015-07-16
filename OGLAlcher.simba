@@ -41,7 +41,7 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '1.1.0';
+  VERSION = '1.1.1';
   ALERT_FLAG = false;
   ALERT_KEYWORD = 'Username';
   ALERT_SOUND = 'C:\Simba\sound.wav';
@@ -49,7 +49,7 @@ const
 var
   clientCenter, itemPoint: tPoint;
   alchActionBar: char;
-  startTime, startExperience, playerId, alchCasts, clickCount, clickMax, taskIndex: integer;
+  startTime, startExperience, playerId, alchCasts, totalAlchCasts, clickCount, clickMax, taskIndex: integer;
   canPrintProgress, canAlert, canAlch: tCountDown;
 
 procedure printProgress();
@@ -68,8 +68,8 @@ begin
 
   writeln('=========================================');
   writeln('Running for: ', floor(hours), 'h ', minutes, 'm');
-  writeln('Alch casts: ', alchCasts);
-  writeln('Alch casts per hour: ', floor(alchCasts / hours));
+  writeln('Alch casts: ', totalAlchCasts);
+  writeln('Alch casts per hour: ', floor(totalAlchCasts / hours));
   writeln('Experience earned: ', gainedExperience);
   writeln('Experience per hour: ', floor(gainedExperience / hours));
   writeln('=========================================');
@@ -118,8 +118,9 @@ begin
   wait(normalRandom(0, 250));
 
   mouse.click(itemPoint);
-  clickCount := clickCount + 1;
-  alchCasts := alchCasts + 1;
+  inc(clickCount);
+  inc(alchCasts);
+  inc(totalAlchCasts);
   canAlch.setTime(normalRandom(2600, 3100));
 end;
 
