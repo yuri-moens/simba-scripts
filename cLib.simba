@@ -1,7 +1,7 @@
 {$include_once ogLib/lib/core/core.simba}
 
 const
-  CLIB_VERSION : string = '1.2.0';
+  CLIB_VERSION : string = '1.3.0';
 
 type tAntiban = record
   __: boolean;
@@ -131,12 +131,7 @@ begin
   except
     writeln('An error occured while trying to investigate a meteorite. Trying to recover.');
   finally
-    funcCurrentPoint := minimap.getLocalPosition();
-
-    funcX := funcStartPoint.X - funcCurrentPoint.X;
-    funcY := funcStartPoint.Y - funcCurrentPoint.Y;
-
-    walking.walkToRelativePoint(funcX - 1, funcX + 1, funcY - 1, funcY + 1);
+    walking.walkToLocalPoint(funcStartPoint, 1);
     wait(normalRandom(3000, 4500));
   end;
 end;
@@ -166,6 +161,28 @@ end;
 procedure tAntiban.setMeteoriteSkill(funcSkill: tCardinalArray);
 begin
   meteoriteSkill := funcSkill;
+end;
+
+function tBank.clickPreset(funcPreset: integer; funcUseHotkey: boolean): boolean; overload;
+var
+  funcTimeout: tCountDown;
+begin
+  if (self.hasBank()) then
+  begin
+    if (funcUseHotkey) then
+      typeSend(intToStr(funcPreset), false)
+    else
+      self.clickPreset(funcPreset);
+
+    funcTimeout.setTime(1400);
+    repeat
+      wait(200);
+    until (funcTimeout.isFinished()) or (not self.hasBank());
+
+    result := not self.hasBank();
+  end
+  else
+    result := false;
 end;
 
 function tBank.close(): boolean;
@@ -222,50 +239,6 @@ begin
   until (funcTimeout.isFinished()) or (self.hasBank());
 
   result := self.hasBank();
-end;
-
-{ This function was taken from ogLib and edited to ignore the 1px texture in the inventory.
-  https://github.com/ObscuritySRL/ogLib/blob/master/lib/interfaces/inventory.simba}
-function tInventory.getRealItems(funcID,funcColourID:int32):glTextureArray;overload;
-var
-  funcContinue:boolean;
-  funcPointer:pointer;
-  funcPointerIndex,
-    funcPointerSize,
-    funcResultIndex:uInt32=0;
-  funcTexture: glTexture;
-begin
-  funcPointer:=glTextures(funcPointerSize);
-  {if funcPointerSize<1 then
-    exit();}
-  for funcPointerIndex to funcPointerSize-1 do
-    begin
-      if funcPointer^=88625 then
-        funcContinue:=true
-      else if funcContinue then
-        break;
-      funcPointer:=funcPointer+36;
-    end;
-  if funcPointerIndex=funcPointerSize then
-    exit();
-  setLength(result,funcPointerSize);
-  for funcPointerIndex to funcPointerSize-1 do
-    begin
-      if (funcPointer^=73440) and similarColors((funcPointer+4)^,1256246,oglColourTolerance) then
-        break
-      else if (funcPointer^=funcID) and similarColors((funcPointer+4)^,funcColourID,oglColourTolerance) then
-        begin
-          funcTexture := glTexture(funcPointer^);
-          if (funcTexture.x <> 1254) then
-          begin
-            result[funcResultIndex]:=glTexture(funcPointer^);
-            funcResultIndex:=funcResultIndex+1;
-          end;
-        end;
-      funcPointer:=funcPointer+36;
-    end;
-  setLength(result,funcResultIndex);
-  exit(result);
 end;
 
 function tLogin.logout(): boolean;
@@ -373,7 +346,7 @@ begin
   exit(result);
 end;
 
-{ Credits to Bly for the idea of the getPlayerId function. }
+{ Credits to Lucidity for the idea of the getPlayerId function. }
 function tPlayer.getId(): integer;
 var
   funcModels: glModelArray;
@@ -421,6 +394,50 @@ begin
 
     result := funcIdle.isEmpty();
   end;
+end;
+
+function tProduction.clickMake(funcUseHotkey: boolean): boolean; overload;
+var
+  funcTimeout: tCountDown;
+begin
+  if (self.hasProduction()) and (not self.hasChooseATool()) and (not self.hasProgress()) then
+  begin
+    if (funcUseHotkey) then
+      typeByte(VK_SPACE)
+    else
+      self.clickMake();
+
+    funcTimeout.setTime(1400);
+    repeat
+      wait(200);
+    until (funcTimeout.isFinished()) or (self.hasProgress());
+
+    result := self.hasProgress();
+  end
+  else
+    result := false;
+end;
+
+function tProduction.setTool(funcTool: integer; funcUseHotkey: boolean): boolean; overload;
+var
+  funcTimeout: tCountdown;
+begin
+  if (self.hasChooseATool()) then
+  begin
+    if (funcUseHotkey) then
+      typeSend(intToStr(funcTool), false)
+    else
+      self.setTool(funcTool - 1);
+
+    funcTimeout.setTime(1400);
+    repeat
+      wait(200);
+    until (funcTimeout.isFinished()) or (not self.hasChooseATool());
+
+    result := not self.hasChooseATool();
+  end
+  else
+    result := false;
 end;
 
 function tWalking.walkToIcon(funcIconTextureId: integer;
