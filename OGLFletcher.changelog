@@ -1,3 +1,7 @@
+1.0.4
+=====
+  - Removed unnecessary call to cLib.selfUpdate.
+
 1.0.3
 =====
   - Use new cLib functions to handle production.

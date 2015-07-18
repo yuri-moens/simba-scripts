@@ -52,7 +52,7 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '1.0.3';
+  VERSION = '1.0.4';
   ALERT_FLAG = false;
   ALERT_KEYWORD = 'Username';
   ALERT_SOUND = 'C:\Simba\sound.wav';
@@ -227,7 +227,6 @@ begin
   clientCenter := ogl.getClientMidPoint();
   startTime := getSystemTime();
   ogl.setDebugMode(GLX_DEBUG);
-  cLib.selfUpdate();
 
   if (not web.isUpToDate(VERSION, 'https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLFletcher.version')) then
     web.update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLFletcher.version', 'OGLFletcher');
