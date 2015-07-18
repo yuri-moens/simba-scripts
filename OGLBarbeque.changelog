@@ -1,3 +1,7 @@
+2.1.1
+=====
+  - Removed unnecessary call to cLib.selfUpdate.
+
 2.1.0
 =====
   - Added randoms checking.
