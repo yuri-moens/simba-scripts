@@ -22,8 +22,8 @@ const
   Description: Miscellaneous constants for the script. }
 const
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '2.1.0';
-  METEORITE_SKILL = ATTACK;
+  VERSION = '2.1.1';
+  METEORITE_SKILL = WOODCUTTING;
 
 { const Object Model Constants:
   Description: Constants for various object models. Shouldn't be changed. }
@@ -216,7 +216,6 @@ begin
   clientCenter := ogl.getClientMidPoint();
   startTime := getSystemTime();
   ogl.setDebugMode(GLX_DEBUG);
-  cLib.selfUpdate();
 
   if (not web.isUpToDate(VERSION, 'https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLDraynorChopper.version')) then
     web.update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLDraynorChopper.version', 'OGLDraynorChopper');
