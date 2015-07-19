@@ -1,3 +1,7 @@
+2.1.2
+=====
+  - Fixed a serious mistake with script updating.
+
 2.1.1
 =====
   - Removed unnecessary call to cLib.selfUpdate.

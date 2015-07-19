@@ -18,7 +18,7 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG: string = 'none';
-  VERSION: string = '2.1.1';
+  VERSION: string = '2.1.2';
   METEORITE_SKILL = COOKING;
 
 var
@@ -134,7 +134,7 @@ begin
   ogl.setDebugMode(GLX_DEBUG);
 
   if (not web.isUpToDate(VERSION, 'https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLBarbeque.version')) then
-    web.update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLBarbeque.version', 'OGLBarbeque');
+    web.update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLBarbeque.simba', 'OGLBarbeque');
 
   writeln('[OGL] Barbeque v', VERSION, ' by ChaosEnergy');
   writeln('=========================================');

@@ -46,7 +46,7 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '1.0.1';
+  VERSION = '1.0.2';
   ALERT_FLAG = false;
   ALERT_KEYWORD = 'Username';
   ALERT_SOUND = 'C:\Simba\sound.wav';
@@ -241,7 +241,7 @@ begin
   ogl.setDebugMode(GLX_DEBUG);
 
   if (not web.isUpToDate(VERSION, 'https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLDivination.version')) then
-    web.update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLDivination.version', 'OGLDivination');
+    web.update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLDivination.simba', 'OGLDivination');
 
   writeln('[OGL] Divination v', VERSION, ' by ChaosEnergy');
   writeln('=========================================');

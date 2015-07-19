@@ -22,7 +22,7 @@ const
   Description: Miscellaneous constants for the script. }
 const
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '2.1.1';
+  VERSION = '2.1.2';
   METEORITE_SKILL = WOODCUTTING;
 
 { const Object Model Constants:
@@ -218,7 +218,7 @@ begin
   ogl.setDebugMode(GLX_DEBUG);
 
   if (not web.isUpToDate(VERSION, 'https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLDraynorChopper.version')) then
-    web.update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLDraynorChopper.version', 'OGLDraynorChopper');
+    web.update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLDraynorChopper.simba', 'OGLDraynorChopper');
 
   writeln('[OGL] Draynor Chopper v', VERSION, ' by ChaosEnergy');
   writeln('=========================================');
