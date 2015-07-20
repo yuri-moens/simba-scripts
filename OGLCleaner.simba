@@ -1,0 +1,187 @@
+program OGLCleaner;
+{$i cLib.simba}
+
+{ This script requires ogLib. Learn how to set it up correctly here:
+  https://villavu.com/forum/showthread.php?t=112486
+
+  This script also requires cLib. Learn how to set it up correctly here:
+  https://villavu.com/forum/showthread.php?t=113750
+
+  Make sure to set your game window to 'Resizable' and your interface to the
+  RuneScape 3 default. Also turn on 'Show XP tracker' at the Interface settings.
+
+  Setup the script at lines 28-29, setup alerting, screen-size and debug options at lines 34-40.
+
+  Setup
+  =====
+  1. Bank preset should be a full inventory of your grimy herbs.
+  2. Make sure the correct grimy herb is on the action bar. }
+
+const
+  GRIMY_HERBS = 73440;
+  CLEAN_HERBS = 71400;
+  HERBS_ACTION_BAR = 58905;
+
+{ const User Constants;
+  Description: Change these to your own preference. }
+const
+  METEORITE_SKILL = HERBLORE; // options: see constants in the cLib include
+  PRESET_SLOT = '1'; // options: 1, 2
+
+{ const Misc Constants;
+  Description: Miscellaneous constants for the script. }
+const
+  WIDTH = 1440;
+  HEIGHT = 900;
+  GLX_DEBUG = 'none'; // options: none, models, textures, fonts
+  VERSION = '1.0.0';
+  ALERT_FLAG = false;
+  ALERT_KEYWORD = 'Username';
+  ALERT_SOUND = 'C:\Simba\sound.wav';
+
+var
+  clientCenter: tPoint;
+  herbActionBar: char;
+  startTime, startExperience, herbsCleaned, playerId: integer;
+  canPrintProgress, canHandleBank, canAlert, canOpenProduction: tCountDown;
+
+procedure printProgress();
+var
+  elapsedTime: integer;
+  hours: double;
+  minutes: double;
+  gainedExperience: integer;
+begin
+  elapsedTime := getSystemTime() - startTime;
+  hours := elapsedTime / 3600000;
+  minutes := floor(elapsedTime / 60000) mod 60;
+  gainedExperience := player.getExperience() - startExperience;
+
+  writeln('Running for: ', floor(hours), 'h ', minutes, 'm');
+  writeln('Herbs cleaned: ', herbsCleaned);
+  writeln('Herbs cleaned per hour: ', floor(herbsCleaned / hours));
+  writeln('Experience earned: ', gainedExperience);
+  writeln('Experience per hour: ', floor(gainedExperience / hours));
+  writeln('=========================================');
+
+  canPrintProgress.setTime(15000);
+end;
+
+procedure twiddleThumbs;
+begin
+  if ALERT_FLAG and canAlert.isFinished() then
+  begin
+    if antiban.alert(ALERT_KEYWORD) then
+    begin
+      playSound(ALERT_SOUND);
+      canAlert.setTime(30000);
+    end;
+  end;
+
+  antiban.checkRandoms();
+
+  case random(533) of
+    1: antiban.rotateCamera(342, 11, 4);
+  end;
+end;
+
+procedure setupActionBarVariable();
+begin
+  herbActionBar := actionBar.getActionKey(HERBS_ACTION_BAR);
+end;
+
+procedure handleBank;
+var
+  funcTimeout: tCountDown;
+begin
+  if (inventory.getItems(CLEAN_HERBS).indexes() <> 0) and (canPrintProgress.isFinished()) then
+  begin
+    herbsCleaned := herbsCleaned + inventory.getItems(CLEAN_HERBS).indexes();
+    printProgress();
+  end;
+
+  while (bank.hasBank()) do
+  begin
+    typeSend(PRESET_SLOT, false);
+
+    funcTimeout.setTime(1400);
+    repeat
+      wait(200);
+    until (funcTimeout.isFinished()) or (not bank.hasBank());
+  end;
+
+  canHandleBank.setTime(3000);
+end;
+
+function shouldClean: boolean;
+begin
+  result := inventory.getItems(GRIMY_HERBS).indexes() <> 0;
+end;
+
+function isInProduction: boolean;
+begin
+  result := (production.hasProduction()) and (inventory.getItems(GRIMY_HERBS).indexes() <> 0);
+end;
+
+procedure openProduction;
+begin
+  typeSend(herbActionBar, false);
+  canOpenProduction.setTime(normalRandom(1000, 2000));
+end;
+
+procedure startProduction;
+begin
+  while (not production.clickMake(true)) do
+    wait(normalRandom(800, 1200));
+end;
+
+procedure mainLoop
+var
+  funcReaction: procedure() = @twiddleThumbs;
+begin
+  if (shouldClean()) then
+  begin
+    if (not isInProduction()) and (canOpenProduction.isFinished()) then
+      funcReaction := @openProduction
+    else if (production.hasProduction()) and (not production.hasProgress()) then
+      funcReaction := @startProduction;
+  end
+  else
+  begin
+    if (not bank.hasBank()) then
+      bank.open()
+    else if (bank.hasBank()) and (canHandleBank.isFinished()) then
+      funcReaction := @handleBank;
+  end;
+
+  funcReaction();
+end;
+
+begin
+  ogl.setup(WIDTH, HEIGHT);
+  clientCenter := ogl.getClientMidPoint();
+  startTime := getSystemTime();
+  ogl.setDebugMode(GLX_DEBUG);
+
+  if (not web.isUpToDate(VERSION, 'https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLCleaner.version')) then
+    web.update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLCleaner.simba', 'OGLCleaner');
+
+  writeln('[OGL] Cleaner v', VERSION, ' by ChaosEnergy');
+  writeln('=========================================');
+
+  try
+    playerId := player.getId();
+    antiban.setMeteoriteSkill(METEORITE_SKILL);
+    startExperience := player.getExperience();
+    setupActionBarVariable();
+
+    repeat
+      mainLoop;
+      wait(normalRandom(220, 670));
+    until false;
+  except
+    writeln('Oops! It appears I have crashed.');
+    login.logout();
+    terminateScript();
+  end;
+end.
