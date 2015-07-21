@@ -1,0 +1,170 @@
+program OGLPowerMiner;
+{$i cLib.simba}
+
+{ This script requires ogLib. Learn how to set it up correctly here:
+  https://villavu.com/forum/showthread.php?t=112486
+
+  This script also requires cLib. Learn how to set it up correctly here:
+  https://villavu.com/forum/showthread.php?t=113750
+
+  Make sure to set your game window to 'Resizable' and your interface to the
+  RuneScape 3 default. Also turn on 'Show XP tracker' at the Interface settings.
+
+  Setup the script at lines 44-47, setup alerting, screen-size and debug options at lines 52-58.
+
+  Setup
+  =====
+  1. Bank preset should be a full inventory of your logs, 14 logs + 14 bowstrings or 14 unstrung bows + 14 bowstrings, depending on what you want to do.
+  2. Make sure the log and/or bowstring (depending on what you want to do) is on the action bar. }
+
+{ const Script Constants;
+  Description: These are necessary for the script. }
+const
+  ORES: tCardinalArray = [366615370, 1827131691, 1828393436];
+
+{ const User Constants;
+  Description: Change these to your own preference. }
+const
+  METEORITE_SKILL = MINING; // options: see constants in the cLib include
+
+{ const Misc Constants;
+  Description: Miscellaneous constants for the script. }
+const
+  WIDTH = 1440;
+  HEIGHT = 900;
+  GLX_DEBUG = 'none'; // options: none, models, textures, fonts
+  VERSION = '1.0.0';
+  ALERT_FLAG = false;
+  ALERT_KEYWORD = 'Username';
+  ALERT_SOUND = 'C:\Simba\sound.wav';
+
+var
+  clientCenter: tPoint;
+  oreActionBar: char;
+  startTime, startExperience, oresMined, playerId: integer;
+  canPrintProgress, canAlert, canMineOre, canDropOres: tCountDown;
+
+procedure printProgress();
+var
+  elapsedTime: integer;
+  hours: double;
+  minutes: double;
+  gainedExperience: integer;
+begin
+  elapsedTime := getSystemTime() - startTime;
+  hours := elapsedTime / 3600000;
+  minutes := floor(elapsedTime / 60000) mod 60;
+  gainedExperience := player.getExperience() - startExperience;
+
+  writeln('Running for: ', floor(hours), 'h ', minutes, 'm');
+  writeln('Ores mined: ', oresMined);
+  writeln('Ores mined per hour: ', floor(oresMined / hours));
+  writeln('Experience earned: ', gainedExperience);
+  writeln('Experience per hour: ', floor(gainedExperience / hours));
+  writeln('=========================================');
+
+  canPrintProgress.setTime(60000);
+end;
+
+procedure twiddleThumbs;
+begin
+  if ALERT_FLAG and canAlert.isFinished() then
+  begin
+    if antiban.alert(ALERT_KEYWORD) then
+    begin
+      playSound(ALERT_SOUND);
+      canAlert.setTime(30000);
+    end;
+  end;
+
+  antiban.checkRandoms();
+
+  case random(533) of
+    1: antiban.rotateCamera(192, 11, 4);
+  end;
+end;
+
+procedure setupActionBarVariable();
+begin
+  oreActionBar := actionBar.getActionKey(78540);
+end;
+
+function hasOre(): boolean;
+var
+  funcRocks: glModelArray;
+  i: int32;
+begin
+  funcRocks := ogl.getModels(ORES);
+
+  for i := 0 to high(funcRocks) do
+    if (funcRocks[i].distanceFrom(clientCenter) < 100) then
+      exit(true);
+end;
+
+procedure mineOre();
+var
+  funcRocks: glModelArray;
+  i: int32;
+begin
+  funcRocks := ogl.getModels(ORES);
+
+  for i := 0 to high(funcRocks) do
+    if (funcRocks[i].distanceFrom(clientCenter) < 200) then
+      mouse.clickAction(clientCenter.closest(funcRocks)[0].randomizePointEllipse(20), 'Mine');
+
+  canMineOre.setTime(normalRandom(2400, 3000));
+end;
+
+procedure dropOres();
+begin
+  while (inventory.getItems(104295).indexes() <> 0) do
+  begin
+    typeSend(oreActionBar, false);
+    wait(normalRandom(600, 900));
+  end;
+  canDropOres.setTime(normalRandom(1200, 1800));
+end;
+
+procedure mainLoop
+var
+  funcReaction: procedure() = @twiddleThumbs;
+begin
+  if (canPrintProgress.isFinished()) then
+    printProgress();
+
+  if (inventory.getItems(104295).indexes() <> 0) and (canDropOres.isFinished()) then
+    funcReaction := @dropOres
+  else if (not player.isAnimating(playerId)) and (hasOre()) and (canMineOre.isFinished()) then
+    funcReaction := @mineOre;
+
+  funcReaction();
+end;
+
+begin
+  ogl.setup(WIDTH, HEIGHT);
+  clientCenter := ogl.getClientMidPoint();
+  startTime := getSystemTime();
+  ogl.setDebugMode(GLX_DEBUG);
+
+  if (not web.isUpToDate(VERSION, 'https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLPowerMiner.version')) then
+    web.update('https://raw.githubusercontent.com/yuri-moens/simba-scripts/master/OGLPowerMiner.simba', 'OGLPowerMiner');
+
+  writeln('[OGL] PowerMiner v', VERSION, ' by ChaosEnergy');
+  writeln('=========================================');
+
+  try
+    playerId := player.getId();
+    antiban.setMeteoriteSkill(METEORITE_SKILL);
+    startExperience := player.getExperience();
+    setupActionBarVariable();
+
+    repeat
+      mainLoop;
+      wait(normalRandom(220, 670));
+    until false;
+  except
+    writeln('Oops! It appears I have crashed.');
+    login.logout();
+    terminateScript();
+  end;
+end.
