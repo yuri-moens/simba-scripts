@@ -49,7 +49,7 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '2.3.3';
+  VERSION = '2.3.4';
   ALERT_FLAG = false;
   ALERT_KEYWORD = 'Username';
   ALERT_SOUND = 'C:\Simba\sound.wav';
@@ -144,11 +144,11 @@ begin
   funcTimeout.setTime(2000);
   repeat
     wait(normalRandom(150, 550));;
-  until (production.hasProduction()) or (funcTimeout.isFinished());
+  until (production.hasProduction() = 'choose a tool') or (funcTimeout.isFinished());
 
-  if (production.hasProduction()) then
+  if (production.hasProduction() = 'choose a tool') then
   begin
-    typeSend(logActionBar, false);
+    typeSend('3', false);
     canAddToFire.setTime(4000);
   end;
 end;
@@ -162,9 +162,9 @@ begin
   funcTimeout.setTime(2000);
   repeat
     wait(normalRandom(150, 550));;
-  until (production.hasProduction()) or (funcTimeout.isFinished());
+  until (production.hasProduction() = 'choose a tool') or (funcTimeout.isFinished());
 
-  if (production.hasProduction()) then
+  if (production.hasProduction() = 'choose a tool') then
     typeSend('1', false);
 
   funcTimeout.setTime(5000);

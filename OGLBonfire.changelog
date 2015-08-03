@@ -1,3 +1,7 @@
+2.3.4
+=====
+  - Updated to work with ogLib's production update.
+
 2.3.3
 =====
   - Fixed a serious mistake with script updating.
