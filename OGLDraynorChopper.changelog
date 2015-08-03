@@ -1,3 +1,7 @@
+2.1.3
+=====
+  - Fixed checkRandom() call.
+
 2.1.2
 =====
   - Fixed a serious mistake with script updating.
@@ -20,7 +24,7 @@
 
 1.2.4
 =====
-  - Fixed a bug where checkMinimapFlag() could crash the script. 
+  - Fixed a bug where checkMinimapFlag() could crash the script.
 
 1.2.3
 =====

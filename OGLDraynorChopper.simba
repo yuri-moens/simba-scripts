@@ -22,7 +22,7 @@ const
   Description: Miscellaneous constants for the script. }
 const
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '2.1.2';
+  VERSION = '2.1.3';
   METEORITE_SKILL = WOODCUTTING;
 
 { const Object Model Constants:
@@ -175,7 +175,7 @@ procedure mainLoop;
 var
   funcReaction: procedure() = @twiddleThumbs;
 begin
-  checkRandoms();
+  antiban.checkRandoms();
 
   if (isAtBank()) then
   begin
