@@ -52,7 +52,7 @@ const
   WIDTH = 1440;
   HEIGHT = 900;
   GLX_DEBUG = 'none'; // options: none, models, textures, fonts
-  VERSION = '1.0.5';
+  VERSION = '1.0.6';
   ALERT_FLAG = false;
   ALERT_KEYWORD = 'Username';
   ALERT_SOUND = 'C:\Simba\sound.wav';
@@ -165,8 +165,8 @@ end;
 function isInProduction: boolean;
 begin
   case ACTION of
-    CUTTING: result := (production.hasProduction()) and (inventory.getItems(LOG_TYPE.id, LOG_TYPE.cid).indexes() <> 0);
-    STRINGING, CUTTING_STRINGING: result := (production.hasProduction()) and (inventory.getItems(BOWSTRING[0]).indexes() <> 0);
+    CUTTING: result := (production.hasProduction() = 'progress') and (inventory.getItems(LOG_TYPE.id, LOG_TYPE.cid).indexes() <> 0);
+    STRINGING, CUTTING_STRINGING: result := (production.hasProduction() = 'progress') and (inventory.getItems(BOWSTRING[0]).indexes() <> 0);
   end;
 end;
 
@@ -194,7 +194,7 @@ end;
 
 procedure startProduction;
 begin
-  while (not production.clickMake(true)) do
+  while (not production.setMake(true)) do
     wait(normalRandom(800, 1200));
 end;
 
@@ -206,9 +206,9 @@ begin
   begin
     if (not isInProduction()) and (canOpenProduction.isFinished()) then
       funcReaction := @openProduction
-    else if (production.hasProduction()) and (not production.hasProgress()) then
+    else if (production.hasProduction() = 'production') then
       funcReaction := @startProduction
-    else if (production.hasChooseATool()) then
+    else if (production.hasProduction() = 'choose a tool') then
       funcReaction := @chooseProductionTool;
   end
   else
